@@ -68,10 +68,18 @@ export default function AdminPage() {
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           type="button"
-          onClick={() => router.push("/profile")}
+          onClick={() => router.push("/admin/categories")}
           className="rounded-md border bg-white px-3 py-2 text-sm"
         >
-          Back To Profile
+          Manage Categories
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/products")}
+          className="rounded-md border bg-white px-3 py-2 text-sm"
+        >
+          Manage Products
         </button>
 
         <button
@@ -91,11 +99,30 @@ export default function AdminPage() {
       {!loading && !error && summary && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Total Revenue</p><p className="text-xl font-semibold">Tk {summary.totalRevenue}</p></div>
-            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Delivered</p><p className="text-xl font-semibold">{summary.totalDeliveredOrders}</p></div>
-            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Pending</p><p className="text-xl font-semibold">{summary.pendingOrders}</p></div>
-            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Confirmed</p><p className="text-xl font-semibold">{summary.confirmedOrders}</p></div>
-            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Cancelled</p><p className="text-xl font-semibold">{summary.cancelledOrders}</p></div>
+            <div className="border rounded-lg bg-white p-4">
+              <p className="text-sm text-slate-600">Total Revenue</p>
+              <p className="text-xl font-semibold">Tk {summary.totalRevenue}</p>
+            </div>
+
+            <div className="border rounded-lg bg-white p-4">
+              <p className="text-sm text-slate-600">Delivered</p>
+              <p className="text-xl font-semibold">{summary.totalDeliveredOrders}</p>
+            </div>
+
+            <div className="border rounded-lg bg-white p-4">
+              <p className="text-sm text-slate-600">Pending</p>
+              <p className="text-xl font-semibold">{summary.pendingOrders}</p>
+            </div>
+
+            <div className="border rounded-lg bg-white p-4">
+              <p className="text-sm text-slate-600">Confirmed</p>
+              <p className="text-xl font-semibold">{summary.confirmedOrders}</p>
+            </div>
+
+            <div className="border rounded-lg bg-white p-4">
+              <p className="text-sm text-slate-600">Cancelled</p>
+              <p className="text-xl font-semibold">{summary.cancelledOrders}</p>
+            </div>
           </div>
 
           <div className="border rounded-lg bg-white p-4">
@@ -107,9 +134,17 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {soldProducts.map((item, index) => (
                   <div key={index} className="border rounded-lg bg-slate-50 p-3">
-                    <p className="text-sm"><span className="font-medium">Product:</span> {item.productName}</p>
-                    <p className="text-sm"><span className="font-medium">Quantity Sold:</span> {item.totalQuantitySold}</p>
-                    <p className="text-sm"><span className="font-medium">Revenue:</span> Tk {item.totalRevenue}</p>
+                    <p className="text-sm">
+                      <span className="font-medium">Product:</span> {item.productName}
+                    </p>
+
+                    <p className="text-sm">
+                      <span className="font-medium">Quantity Sold:</span> {item.totalQuantitySold}
+                    </p>
+
+                    <p className="text-sm">
+                      <span className="font-medium">Revenue:</span> Tk {item.totalRevenue}
+                    </p>
                   </div>
                 ))}
               </div>

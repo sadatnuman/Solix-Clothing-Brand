@@ -68,6 +68,16 @@ export default function OrderDetailsPage() {
         >
           My Cart
         </button>
+
+        {order && (
+          <button
+            type="button"
+            onClick={() => router.push(`/payments/order/${order.id}`)}
+            className="border rounded px-3 py-2 text-sm"
+          >
+            Payment Details
+          </button>
+        )}
       </div>
 
       {loading && <p>Loading order details...</p>}

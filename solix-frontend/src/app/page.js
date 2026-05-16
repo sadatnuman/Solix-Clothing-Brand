@@ -29,9 +29,17 @@ export default function Home() {
   return (
     <main className="max-w-5xl mx-auto p-6">
       <h1 className="text-2xl font-semibold mb-2">Solix Products</h1>
-      <p className="text-sm text-gray-600 mb-6">
+      <p className="text-sm text-gray-600 mb-4">
         Product data is coming from the NestJS backend.
       </p>
+
+      <button
+        type="button"
+        onClick={() => router.push("/categories")}
+        className="border rounded px-3 py-2 text-sm mb-6"
+      >
+        Browse Categories
+      </button>
 
       {loading && <p>Loading products...</p>}
       {error && <p className="text-red-600">{error}</p>}

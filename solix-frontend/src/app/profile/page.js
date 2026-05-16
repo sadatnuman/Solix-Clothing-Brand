@@ -22,12 +22,17 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
-        const response = await api.get("/auth/me", getAuthConfig());
+        const response = await api.get("/users/profile", getAuthConfig());
         setProfile(response.data.data);
       } catch (err) {
-        removeToken();
-
+        const status = err.response?.status;
         const message = err.response?.data?.message;
+
+        if (status === 401) {
+          removeToken();
+          router.push("/login");
+          return;
+        }
 
         if (Array.isArray(message)) {
           setError(message[0]);
@@ -42,29 +47,34 @@ export default function ProfilePage() {
     fetchProfile();
   }, [router]);
 
-  const handleLogout = () => {
-    removeToken();
-    router.push("/login");
-  };
-
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <div className="flex gap-3 mb-6">
+    <main className="w-full max-w-3xl mx-auto px-4 py-6">
+      <div className="flex flex-wrap gap-3 mb-6">
         <button
           type="button"
-          onClick={() => router.push("/")}
-          className="border rounded px-3 py-2 text-sm"
+          onClick={() => router.push("/profile/edit")}
+          className="rounded-md border bg-white px-3 py-2 text-sm"
         >
-          Home
+          Edit Profile
         </button>
 
         <button
           type="button"
-          onClick={handleLogout}
-          className="border rounded px-3 py-2 text-sm"
+          onClick={() => router.push("/orders")}
+          className="rounded-md border bg-white px-3 py-2 text-sm"
         >
-          Logout
+          My Orders
         </button>
+
+        {profile?.role === "admin" && (
+          <button
+            type="button"
+            onClick={() => router.push("/admin")}
+            className="rounded-md border bg-white px-3 py-2 text-sm"
+          >
+            Admin Dashboard
+          </button>
+        )}
       </div>
 
       <h1 className="text-2xl font-semibold mb-6">My Profile</h1>
@@ -73,31 +83,13 @@ export default function ProfilePage() {
       {error && <p className="text-red-600">{error}</p>}
 
       {!loading && !error && profile && (
-        <div className="border rounded p-4 space-y-3">
-          <p className="text-sm">
-            <span className="font-medium">Full Name:</span> {profile.fullName}
-          </p>
-
-          <p className="text-sm">
-            <span className="font-medium">Email:</span> {profile.email}
-          </p>
-
-          <p className="text-sm">
-            <span className="font-medium">Phone:</span> {profile.phone}
-          </p>
-
-          <p className="text-sm">
-            <span className="font-medium">Address:</span> {profile.address}
-          </p>
-
-          <p className="text-sm">
-            <span className="font-medium">Role:</span> {profile.role}
-          </p>
-
-          <p className="text-sm">
-            <span className="font-medium">Active:</span>{" "}
-            {profile.isActive ? "Yes" : "No"}
-          </p>
+        <div className="border rounded-lg bg-white p-4 space-y-3">
+          <p className="text-sm"><span className="font-medium">Full Name:</span> {profile.fullName}</p>
+          <p className="text-sm"><span className="font-medium">Email:</span> {profile.email}</p>
+          <p className="text-sm"><span className="font-medium">Phone:</span> {profile.phone}</p>
+          <p className="text-sm"><span className="font-medium">Address:</span> {profile.address}</p>
+          <p className="text-sm"><span className="font-medium">Role:</span> {profile.role}</p>
+          <p className="text-sm"><span className="font-medium">Active:</span> {profile.isActive ? "Yes" : "No"}</p>
         </div>
       )}
     </main>

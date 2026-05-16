@@ -33,13 +33,39 @@ export default function Home() {
         Product data is coming from the NestJS backend.
       </p>
 
-      <button
-        type="button"
-        onClick={() => router.push("/categories")}
-        className="border rounded px-3 py-2 text-sm mb-6"
-      >
-        Browse Categories
-      </button>
+      <div className="flex flex-wrap gap-3 mb-6">
+        <button
+          type="button"
+          onClick={() => router.push("/categories")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          Browse Categories
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/register")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          Register
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          Login
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/profile")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          My Profile
+        </button>
+      </div>
 
       {loading && <p>Loading products...</p>}
       {error && <p className="text-red-600">{error}</p>}

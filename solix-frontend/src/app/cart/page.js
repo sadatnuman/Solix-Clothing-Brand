@@ -162,6 +162,14 @@ export default function CartPage() {
         >
           My Profile
         </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/orders")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          My Orders
+        </button>
       </div>
 
       <h1 className="text-2xl font-semibold mb-6">My Cart</h1>
@@ -177,9 +185,19 @@ export default function CartPage() {
               <span className="font-medium">Total Items:</span> {cart.totalItems}
             </p>
 
-            <p className="text-sm">
+            <p className="text-sm mb-4">
               <span className="font-medium">Total Amount:</span> Tk {cart.totalAmount}
             </p>
+
+            {cart.items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => router.push("/checkout")}
+                className="border rounded px-3 py-2 text-sm"
+              >
+                Proceed To Checkout
+              </button>
+            )}
           </div>
 
           {cart.items.length === 0 ? (

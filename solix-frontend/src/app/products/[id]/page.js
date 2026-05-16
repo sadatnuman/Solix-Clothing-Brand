@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "../../lib/api";
+import { getAuthConfig, getToken } from "../../lib/auth";
 
 export default function ProductDetailsPage() {
   const [product, setProduct] = useState(null);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [error, setError] = useState("");
+  const [cartError, setCartError] = useState("");
 
   const params = useParams();
   const router = useRouter();
@@ -16,7 +21,13 @@ export default function ProductDetailsPage() {
     const fetchProduct = async () => {
       try {
         const response = await api.get(`/products/${params.id}`);
-        setProduct(response.data.data);
+        const productData = response.data.data;
+
+        setProduct(productData);
+
+        if (productData.variants?.length) {
+          setSelectedVariantId(String(productData.variants[0].id));
+        }
       } catch (err) {
         setError("Failed to load product details.");
       } finally {
@@ -29,15 +40,68 @@ export default function ProductDetailsPage() {
     }
   }, [params.id]);
 
+  const handleAddToCart = async () => {
+    if (!getToken()) {
+      router.push("/login");
+      return;
+    }
+
+    if (!selectedVariantId) {
+      setCartError("Please select a size.");
+      return;
+    }
+
+    if (Number(quantity) < 1) {
+      setCartError("Quantity must be at least 1.");
+      return;
+    }
+
+    setAddingToCart(true);
+    setCartError("");
+
+    try {
+      await api.post(
+        "/cart/items",
+        {
+          productVariantId: Number(selectedVariantId),
+          quantity: Number(quantity),
+        },
+        getAuthConfig()
+      );
+
+      router.push("/cart");
+    } catch (err) {
+      const message = err.response?.data?.message;
+
+      if (Array.isArray(message)) {
+        setCartError(message[0]);
+      } else {
+        setCartError(message || "Failed to add item to cart.");
+      }
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
   return (
     <main className="max-w-3xl mx-auto p-6">
-      <button
-        type="button"
-        onClick={() => router.push("/")}
-        className="border rounded px-3 py-2 text-sm mb-6"
-      >
-        Back
-      </button>
+      <div className="flex gap-3 mb-6">
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          Back
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/cart")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          My Cart
+        </button>
+      </div>
 
       {loading && <p>Loading product details...</p>}
       {error && <p className="text-red-600">{error}</p>}
@@ -52,7 +116,7 @@ export default function ProductDetailsPage() {
           </p>
 
           <p className="text-sm mb-2">
-            <span className="font-medium">Price:</span> Tk {product.basePrice}
+            <span className="font-medium">Base Price:</span> Tk {product.basePrice}
           </p>
 
           <p className="text-sm mb-2">
@@ -65,32 +129,56 @@ export default function ProductDetailsPage() {
           </p>
 
           <div className="mb-4">
-            <h2 className="text-lg font-medium mb-2">Available Sizes</h2>
+            <label className="block text-sm mb-1">Select Size</label>
 
             {product.variants?.length ? (
-              <ul className="space-y-2">
+              <select
+                value={selectedVariantId}
+                onChange={(event) => setSelectedVariantId(event.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm"
+              >
                 {product.variants.map((variant) => (
-                  <li key={variant.id} className="border rounded p-3">
-                    <p className="text-sm">
-                      <span className="font-medium">Size:</span>{" "}
-                      {variant.size?.name || "N/A"}
-                    </p>
-
-                    <p className="text-sm">
-                      <span className="font-medium">Stock:</span>{" "}
-                      {variant.stockQuantity}
-                    </p>
-
-                    <p className="text-sm">
-                      <span className="font-medium">Variant Price:</span>{" "}
-                      {variant.variantPrice ?? "Uses base price"}
-                    </p>
-                  </li>
+                  <option key={variant.id} value={variant.id}>
+                    {variant.size?.name} | Stock: {variant.stockQuantity} | Price: Tk{" "}
+                    {variant.variantPrice ?? product.basePrice}
+                  </option>
                 ))}
-              </ul>
+              </select>
             ) : (
               <p className="text-sm">No variants available.</p>
             )}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm mb-1">Quantity</label>
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+
+          {cartError && <p className="text-red-600 text-sm mb-4">{cartError}</p>}
+
+          <div className="flex gap-3 mb-4">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={addingToCart || !product.variants?.length}
+              className="border rounded px-3 py-2 text-sm"
+            >
+              {addingToCart ? "Adding..." : "Add To Cart"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/cart")}
+              className="border rounded px-3 py-2 text-sm"
+            >
+              Go To Cart
+            </button>
           </div>
 
           <div>

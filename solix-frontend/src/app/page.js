@@ -65,6 +65,15 @@ export default function Home() {
         >
           My Profile
         </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/cart")}
+          className="border rounded px-3 py-2 text-sm"
+        >
+          My Cart
+        </button>
+
       </div>
 
       {loading && <p>Loading products...</p>}

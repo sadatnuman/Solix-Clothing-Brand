@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import api from "../lib/api";
 import { getAuthConfig, getToken, removeToken } from "../lib/auth";
 
+function buildQuantityInputs(items) {
+  const initialQuantities = {};
+
+  items.forEach((item) => {
+    initialQuantities[item.id] = item.quantity;
+  });
+
+  return initialQuantities;
+}
+
 export default function CartPage() {
   const [cart, setCart] = useState(null);
   const [quantityInputs, setQuantityInputs] = useState({});
@@ -16,47 +26,63 @@ export default function CartPage() {
   const router = useRouter();
 
   const fetchCart = async () => {
-    try {
-      const response = await api.get("/cart", getAuthConfig());
-      const cartData = response.data.data;
+    const response = await api.get("/cart", getAuthConfig());
+    const cartData = response.data.data;
 
-      setCart(cartData);
+    setCart(cartData);
+    setQuantityInputs(buildQuantityInputs(cartData.items));
+  };
 
-      const initialQuantities = {};
-      cartData.items.forEach((item) => {
-        initialQuantities[item.id] = item.quantity;
-      });
+  useEffect(() => {
+    let isMounted = true;
 
-      setQuantityInputs(initialQuantities);
-    } catch (err) {
-      const status = err.response?.status;
-      const message = err.response?.data?.message;
+    const loadCart = async () => {
+      const token = getToken();
 
-      if (status === 401) {
-        removeToken();
+      if (!token) {
         router.push("/login");
         return;
       }
 
-      if (Array.isArray(message)) {
-        setError(message[0]);
-      } else {
-        setError(message || "Failed to load cart.");
+      try {
+        const response = await api.get("/cart", getAuthConfig());
+        const cartData = response.data.data;
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCart(cartData);
+        setQuantityInputs(buildQuantityInputs(cartData.items));
+      } catch (err) {
+        const status = err.response?.status;
+        const responseMessage = err.response?.data?.message;
+
+        if (status === 401) {
+          removeToken();
+          router.push("/login");
+          return;
+        }
+
+        if (isMounted) {
+          setError(
+            Array.isArray(responseMessage)
+              ? responseMessage[0]
+              : responseMessage || "Failed to load cart."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    const token = getToken();
+    loadCart();
 
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    fetchCart();
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   const handleQuantityChange = (itemId, value) => {
@@ -88,13 +114,13 @@ export default function CartPage() {
       await fetchCart();
       setMessage("Cart updated successfully.");
     } catch (err) {
-      const message = err.response?.data?.message;
+      const responseMessage = err.response?.data?.message;
 
-      if (Array.isArray(message)) {
-        setError(message[0]);
-      } else {
-        setError(message || "Failed to update cart item.");
-      }
+      setError(
+        Array.isArray(responseMessage)
+          ? responseMessage[0]
+          : responseMessage || "Failed to update cart item."
+      );
     } finally {
       setActionLoading(false);
     }
@@ -110,13 +136,13 @@ export default function CartPage() {
       await fetchCart();
       setMessage("Item removed successfully.");
     } catch (err) {
-      const message = err.response?.data?.message;
+      const responseMessage = err.response?.data?.message;
 
-      if (Array.isArray(message)) {
-        setError(message[0]);
-      } else {
-        setError(message || "Failed to remove cart item.");
-      }
+      setError(
+        Array.isArray(responseMessage)
+          ? responseMessage[0]
+          : responseMessage || "Failed to remove cart item."
+      );
     } finally {
       setActionLoading(false);
     }
@@ -132,13 +158,13 @@ export default function CartPage() {
       await fetchCart();
       setMessage("Cart cleared successfully.");
     } catch (err) {
-      const message = err.response?.data?.message;
+      const responseMessage = err.response?.data?.message;
 
-      if (Array.isArray(message)) {
-        setError(message[0]);
-      } else {
-        setError(message || "Failed to clear cart.");
-      }
+      setError(
+        Array.isArray(responseMessage)
+          ? responseMessage[0]
+          : responseMessage || "Failed to clear cart."
+      );
     } finally {
       setActionLoading(false);
     }
@@ -182,11 +208,13 @@ export default function CartPage() {
         <>
           <div className="border rounded p-4 mb-6">
             <p className="text-sm mb-2">
-              <span className="font-medium">Total Items:</span> {cart.totalItems}
+              <span className="font-medium">Total Items:</span>{" "}
+              {cart.totalItems}
             </p>
 
             <p className="text-sm mb-4">
-              <span className="font-medium">Total Amount:</span> Tk {cart.totalAmount}
+              <span className="font-medium">Total Amount:</span> Tk{" "}
+              {cart.totalAmount}
             </p>
 
             {cart.items.length > 0 && (
@@ -216,11 +244,13 @@ export default function CartPage() {
                   </p>
 
                   <p className="text-sm mb-1">
-                    <span className="font-medium">Unit Price:</span> Tk {item.unitPrice}
+                    <span className="font-medium">Unit Price:</span> Tk{" "}
+                    {item.unitPrice}
                   </p>
 
                   <p className="text-sm mb-3">
-                    <span className="font-medium">Subtotal:</span> Tk {item.subtotal}
+                    <span className="font-medium">Subtotal:</span> Tk{" "}
+                    {item.subtotal}
                   </p>
 
                   <div className="mb-3">

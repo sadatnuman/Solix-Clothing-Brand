@@ -21,27 +21,45 @@ export default function AppHeader() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
+    let isMounted = true;
 
     const fetchCurrentUser = async () => {
+      await Promise.resolve();
+
+      const token = getToken();
+
+      if (!token) {
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const response = await api.get("/auth/me", getAuthConfig());
-        setUser(response.data.data);
+
+        if (isMounted) {
+          setUser(response.data.data);
+        }
       } catch {
         removeToken();
-        setUser(null);
+
+        if (isMounted) {
+          setUser(null);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, [pathname]);
 
   const goTo = (path) => {
@@ -66,95 +84,58 @@ export default function AppHeader() {
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <button
-              type="button"
-              onClick={() => goTo("/")}
-              className="text-xl font-semibold"
-            >
+            <button type="button" onClick={() => goTo("/")} className="text-xl font-semibold">
               Solix
             </button>
-
-            <p className="text-sm text-slate-600">
-              Simple clothing store frontend
-            </p>
+            <p className="text-sm text-slate-600">Clothing store management system</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => goTo("/")}
-              className={buttonClass("/")}
-            >
+            <button type="button" onClick={() => goTo("/")} className={buttonClass("/")}>
               Home
             </button>
 
-            <button
-              type="button"
-              onClick={() => goTo("/categories")}
-              className={buttonClass("/categories")}
-            >
+            <button type="button" onClick={() => goTo("/categories")} className={buttonClass("/categories")}>
               Categories
             </button>
 
-            <button
-              type="button"
-              onClick={() => goTo("/cart")}
-              className={buttonClass("/cart")}
-            >
-              Cart
-            </button>
-
-            <button
-              type="button"
-              onClick={() => goTo("/orders")}
-              className={buttonClass("/orders")}
-            >
-              Orders
-            </button>
-
-            {!loading && user ? (
+            {!loading && user?.role === "admin" && (
               <>
-                {user.role === "admin" && (
-                  <button
-                    type="button"
-                    onClick={() => goTo("/admin")}
-                    className={buttonClass("/admin")}
-                  >
-                    Admin
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => goTo("/profile")}
-                  className={buttonClass("/profile")}
-                >
-                  {user.fullName}
+                <button type="button" onClick={() => goTo("/admin")} className={buttonClass("/admin")}>
+                  Admin
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="rounded-md border bg-white px-3 py-2 text-sm"
-                >
+                <button type="button" onClick={() => goTo("/profile")} className={buttonClass("/profile")}>
+                  Profile
+                </button>
+                <button type="button" onClick={handleLogout} className="rounded-md border bg-white px-3 py-2 text-sm">
                   Logout
                 </button>
               </>
-            ) : (
+            )}
+
+            {!loading && user?.role === "customer" && (
               <>
-                <button
-                  type="button"
-                  onClick={() => goTo("/login")}
-                  className={buttonClass("/login")}
-                >
+                <button type="button" onClick={() => goTo("/cart")} className={buttonClass("/cart")}>
+                  Cart
+                </button>
+                <button type="button" onClick={() => goTo("/orders")} className={buttonClass("/orders")}>
+                  Orders
+                </button>
+                <button type="button" onClick={() => goTo("/profile")} className={buttonClass("/profile")}>
+                  Profile
+                </button>
+                <button type="button" onClick={handleLogout} className="rounded-md border bg-white px-3 py-2 text-sm">
+                  Logout
+                </button>
+              </>
+            )}
+
+            {!loading && !user && (
+              <>
+                <button type="button" onClick={() => goTo("/login")} className={buttonClass("/login")}>
                   Login
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => goTo("/register")}
-                  className={buttonClass("/register")}
-                >
+                <button type="button" onClick={() => goTo("/register")} className={buttonClass("/register")}>
                   Register
                 </button>
               </>

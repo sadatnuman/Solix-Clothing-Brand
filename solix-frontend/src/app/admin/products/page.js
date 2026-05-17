@@ -15,9 +15,11 @@ export default function AdminProductsPage() {
     basePrice: "",
     sizeGuide: "",
   });
+  const [imageFiles, setImageFiles] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingId, setUploadingId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -137,12 +139,11 @@ export default function AdminProductsPage() {
       await fetchProducts();
     } catch (err) {
       const responseMessage = err.response?.data?.message;
-
-      if (Array.isArray(responseMessage)) {
-        setError(responseMessage[0]);
-      } else {
-        setError(responseMessage || "Failed to save product.");
-      }
+      setError(
+        Array.isArray(responseMessage)
+          ? responseMessage[0]
+          : responseMessage || "Failed to save product."
+      );
     } finally {
       setSaving(false);
     }
@@ -163,12 +164,58 @@ export default function AdminProductsPage() {
       await fetchProducts();
     } catch (err) {
       const responseMessage = err.response?.data?.message;
+      setError(
+        Array.isArray(responseMessage)
+          ? responseMessage[0]
+          : responseMessage || "Failed to delete product."
+      );
+    }
+  };
 
-      if (Array.isArray(responseMessage)) {
-        setError(responseMessage[0]);
-      } else {
-        setError(responseMessage || "Failed to delete product.");
-      }
+  const handleImageChange = (productId, file) => {
+    setImageFiles((prev) => ({
+      ...prev,
+      [productId]: file,
+    }));
+  };
+
+  const handleImageUpload = async (productId) => {
+    const file = imageFiles[productId];
+
+    if (!file) {
+      setError("Please choose an image first.");
+      return;
+    }
+
+    setUploadingId(productId);
+    setError("");
+    setMessage("");
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+
+      await api.post(`/products/${productId}/images`, uploadData, {
+        headers: {
+          ...getAuthConfig().headers,
+        },
+      });
+
+      setMessage("Product image uploaded successfully.");
+      setImageFiles((prev) => ({
+        ...prev,
+        [productId]: null,
+      }));
+      await fetchProducts();
+    } catch (err) {
+      const responseMessage = err.response?.data?.message;
+      setError(
+        Array.isArray(responseMessage)
+          ? responseMessage[0]
+          : responseMessage || "Failed to upload product image."
+      );
+    } finally {
+      setUploadingId(null);
     }
   };
 
@@ -181,6 +228,14 @@ export default function AdminProductsPage() {
           className="rounded-md border bg-white px-3 py-2 text-sm"
         >
           Back To Admin
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/variants")}
+          className="rounded-md border bg-white px-3 py-2 text-sm"
+        >
+          Manage Variants
         </button>
       </div>
 
@@ -304,9 +359,35 @@ export default function AdminProductsPage() {
                   <span className="font-medium">Slug:</span> {product.slug}
                 </p>
 
+                <p className="text-sm mb-3">
+                  <span className="font-medium">Images:</span>{" "}
+                  {product.images?.length ? product.images.length : 0}
+                </p>
+
                 <p className="text-sm text-slate-600 mb-4">
                   {product.description || "No description available."}
                 </p>
+
+                <div className="border rounded-lg bg-slate-50 p-3 mb-4">
+                  <label className="block text-sm mb-2">Upload Image</label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    onChange={(event) =>
+                      handleImageChange(product.id, event.target.files?.[0])
+                    }
+                    className="block w-full text-sm mb-3"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => handleImageUpload(product.id)}
+                    disabled={uploadingId === product.id}
+                    className="rounded-md border bg-white px-3 py-2 text-sm"
+                  >
+                    {uploadingId === product.id ? "Uploading..." : "Upload Image"}
+                  </button>
+                </div>
 
                 <div className="flex flex-wrap gap-3">
                   <button
@@ -315,6 +396,22 @@ export default function AdminProductsPage() {
                     className="rounded-md border bg-white px-3 py-2 text-sm"
                   >
                     Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/products/${product.id}`)}
+                    className="rounded-md border bg-white px-3 py-2 text-sm"
+                  >
+                    View
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/admin/products/${product.id}/variants`)}
+                    className="rounded-md border bg-white px-3 py-2 text-sm"
+                  >
+                    View Variants
                   </button>
 
                   <button

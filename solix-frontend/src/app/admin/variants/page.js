@@ -223,6 +223,7 @@ export default function AdminVariantsPage() {
                 <p className="text-sm mb-4"><span className="font-medium">Price:</span> Tk {variant.variantPrice || variant.product?.basePrice || "N/A"}</p>
 
                 <div className="flex flex-wrap gap-3">
+                  <button type="button" onClick={() => router.push(`/admin/variants/${variant.id}`)} className="rounded-md border bg-white px-3 py-2 text-sm">View Details</button>
                   <button type="button" onClick={() => handleEdit(variant)} className="rounded-md border bg-white px-3 py-2 text-sm">Edit</button>
                   <button type="button" onClick={() => handleDelete(variant.id)} className="rounded-md border bg-white px-3 py-2 text-sm">Delete</button>
                 </div>

@@ -124,6 +124,14 @@ export default function PaymentByOrderPage() {
             <span className="font-medium">Paid At:</span>{" "}
             {payment.paidAt || "Not paid yet"}
           </p>
+
+          <button
+            type="button"
+            onClick={() => router.push(`/payments/${payment.id}`)}
+            className="border rounded px-3 py-2 text-sm"
+          >
+            Open Payment By ID
+          </button>
         </div>
       )}
     </main>

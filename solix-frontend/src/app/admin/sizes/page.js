@@ -156,6 +156,7 @@ export default function AdminSizesPage() {
                 <h2 className="text-lg font-medium mb-4">{size.name}</h2>
 
                 <div className="flex flex-wrap gap-3">
+                  <button type="button" onClick={() => router.push(`/admin/sizes/${size.id}`)} className="rounded-md border bg-white px-3 py-2 text-sm">View Details</button>
                   <button type="button" onClick={() => handleEdit(size)} className="rounded-md border bg-white px-3 py-2 text-sm">Edit</button>
                   <button type="button" onClick={() => handleDelete(size.id)} className="rounded-md border bg-white px-3 py-2 text-sm">Delete</button>
                 </div>

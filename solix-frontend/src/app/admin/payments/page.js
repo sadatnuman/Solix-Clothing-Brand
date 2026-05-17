@@ -136,6 +136,10 @@ export default function AdminPaymentsPage() {
               <input type="text" value={transactionInputs[payment.id] || ""} onChange={(event) => setTransactionInputs((prev) => ({ ...prev, [payment.id]: event.target.value }))} placeholder="Transaction reference" className="rounded-md border px-3 py-2 text-sm" />
 
               <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={() => router.push(`/payments/${payment.id}`)} className="rounded-md border bg-white px-3 py-2 text-sm">
+                  View
+                </button>
+
                 <button type="button" onClick={() => handleUpdateStatus(payment.id)} disabled={savingId === payment.id} className="rounded-md border bg-white px-3 py-2 text-sm">
                   Update
                 </button>

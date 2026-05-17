@@ -66,29 +66,14 @@ export default function AdminPage() {
   return (
     <main className="w-full max-w-7xl mx-auto px-4 py-6">
       <div className="flex flex-wrap gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => router.push("/admin/categories")}
-          className="rounded-md border bg-white px-3 py-2 text-sm"
-        >
-          Manage Categories
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.push("/admin/products")}
-          className="rounded-md border bg-white px-3 py-2 text-sm"
-        >
-          Manage Products
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.push("/admin/customers")}
-          className="rounded-md border bg-white px-3 py-2 text-sm"
-        >
-          View Customers
-        </button>
+        <button type="button" onClick={() => router.push("/admin/categories")} className="rounded-md border bg-white px-3 py-2 text-sm">Categories</button>
+        <button type="button" onClick={() => router.push("/admin/sizes")} className="rounded-md border bg-white px-3 py-2 text-sm">Sizes</button>
+        <button type="button" onClick={() => router.push("/admin/products")} className="rounded-md border bg-white px-3 py-2 text-sm">Products</button>
+        <button type="button" onClick={() => router.push("/admin/variants")} className="rounded-md border bg-white px-3 py-2 text-sm">Variants</button>
+        <button type="button" onClick={() => router.push("/admin/orders")} className="rounded-md border bg-white px-3 py-2 text-sm">Orders</button>
+        <button type="button" onClick={() => router.push("/admin/payments")} className="rounded-md border bg-white px-3 py-2 text-sm">Payments</button>
+        <button type="button" onClick={() => router.push("/admin/customers")} className="rounded-md border bg-white px-3 py-2 text-sm">Customers</button>
+        <button type="button" onClick={() => router.push("/admin/mail")} className="rounded-md border bg-white px-3 py-2 text-sm">Mail</button>
       </div>
 
       <h1 className="text-2xl font-semibold mb-6">Admin Dashboard</h1>
@@ -99,52 +84,24 @@ export default function AdminPage() {
       {!loading && !error && summary && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-            <div className="border rounded-lg bg-white p-4">
-              <p className="text-sm text-slate-600">Total Revenue</p>
-              <p className="text-xl font-semibold">Tk {summary.totalRevenue}</p>
-            </div>
-
-            <div className="border rounded-lg bg-white p-4">
-              <p className="text-sm text-slate-600">Delivered</p>
-              <p className="text-xl font-semibold">{summary.totalDeliveredOrders}</p>
-            </div>
-
-            <div className="border rounded-lg bg-white p-4">
-              <p className="text-sm text-slate-600">Pending</p>
-              <p className="text-xl font-semibold">{summary.pendingOrders}</p>
-            </div>
-
-            <div className="border rounded-lg bg-white p-4">
-              <p className="text-sm text-slate-600">Confirmed</p>
-              <p className="text-xl font-semibold">{summary.confirmedOrders}</p>
-            </div>
-
-            <div className="border rounded-lg bg-white p-4">
-              <p className="text-sm text-slate-600">Cancelled</p>
-              <p className="text-xl font-semibold">{summary.cancelledOrders}</p>
-            </div>
+            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Revenue</p><p className="text-xl font-semibold">Tk {summary.totalRevenue}</p></div>
+            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Delivered</p><p className="text-xl font-semibold">{summary.totalDeliveredOrders}</p></div>
+            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Pending</p><p className="text-xl font-semibold">{summary.pendingOrders}</p></div>
+            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Confirmed</p><p className="text-xl font-semibold">{summary.confirmedOrders}</p></div>
+            <div className="border rounded-lg bg-white p-4"><p className="text-sm text-slate-600">Cancelled</p><p className="text-xl font-semibold">{summary.cancelledOrders}</p></div>
           </div>
 
           <div className="border rounded-lg bg-white p-4">
             <h2 className="text-lg font-medium mb-4">Sold Products</h2>
-
             {soldProducts.length === 0 ? (
               <p>No delivered product data found.</p>
             ) : (
               <div className="space-y-3">
                 {soldProducts.map((item, index) => (
                   <div key={index} className="border rounded-lg bg-slate-50 p-3">
-                    <p className="text-sm">
-                      <span className="font-medium">Product:</span> {item.productName}
-                    </p>
-
-                    <p className="text-sm">
-                      <span className="font-medium">Quantity Sold:</span> {item.totalQuantitySold}
-                    </p>
-
-                    <p className="text-sm">
-                      <span className="font-medium">Revenue:</span> Tk {item.totalRevenue}
-                    </p>
+                    <p className="text-sm"><span className="font-medium">Product:</span> {item.productName}</p>
+                    <p className="text-sm"><span className="font-medium">Quantity:</span> {item.totalQuantitySold}</p>
+                    <p className="text-sm"><span className="font-medium">Revenue:</span> Tk {item.totalRevenue}</p>
                   </div>
                 ))}
               </div>

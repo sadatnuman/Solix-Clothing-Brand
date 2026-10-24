@@ -92,6 +92,40 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="wardrobe-spectrum section">
+        <div className="spectrum-heading">
+          <span className="eyebrow">THE COMPLETE WARDROBE</span>
+          <h2>More ways to<br />make it yours.</h2>
+          <p>From a first layer to a final detail, explore every part of the Solix collection through a clear path.</p>
+        </div>
+        <div className="spectrum-layout">
+          <DepthScene className="spectrum-stage">
+            <span className="spectrum-word" aria-hidden="true">SOLIX</span>
+            <Link href="/shop?category=Polo%20Shirts" className="spectrum-photo spectrum-photo-one"><Image src="/images/catalog/knit-polo.png" alt="Solix knit polo" fill sizes="(max-width: 760px) 44vw, 20vw" /></Link>
+            <Link href="/shop?category=Denim" className="spectrum-photo spectrum-photo-two"><Image src="/images/catalog/indigo-denim.png" alt="Solix indigo denim" fill sizes="(max-width: 760px) 38vw, 18vw" /></Link>
+            <Link href="/shop?category=Women%27s%20Wear" className="spectrum-photo spectrum-photo-three"><Image src="/images/catalog/navy-dress.png" alt="Solix navy dress" fill sizes="(max-width: 760px) 38vw, 18vw" /></Link>
+            <span className="spectrum-orbit" aria-hidden="true" />
+          </DepthScene>
+          <nav className="spectrum-categories" aria-label="Shop the full Solix wardrobe">
+            {[
+              ['Panjabi', '01'], ['Shirts', '02'], ['T-Shirts', '03'], ['Polo Shirts', '04'], ['Hoodies', '05'],
+              ['Jackets', '06'], ['Denim', '07'], ['Trousers', '08'], ["Women's Wear", '09'], ['Watches', '10'],
+            ].map(([name, index]) => <Link key={name} href={`/shop?category=${encodeURIComponent(name)}`}><span>{index}</span><strong>{name}</strong><b>↗</b></Link>)}
+          </nav>
+        </div>
+      </section>
+
+      <section className="lookbook-section">
+        <div className="lookbook-image"><Image src="/images/catalog/soft-structure-knit-v2.png" alt="Solix soft structure knit styled for everyday wear" fill sizes="(max-width: 760px) 100vw, 55vw" /></div>
+        <div className="lookbook-copy">
+          <span className="eyebrow">THE EVERYDAY FORMULA</span>
+          <span className="lookbook-count">03 / 03</span>
+          <h2>Soft structure.<br />Strong point<br />of view.</h2>
+          <p>Build a look around clean texture, relaxed proportions and one precise finishing detail.</p>
+          <div className="lookbook-links"><Link href="/shop?category=Layers">Shop soft layers ↗</Link><Link href="/shop?category=Trousers">Add the foundation ↗</Link><Link href="/shop?category=Watches">Finish with a watch ↗</Link></div>
+        </div>
+      </section>
+
       <RecentlyViewed />
 
       <section id="story" className="story section">
@@ -105,6 +139,25 @@ export default function Home() {
           <article><span>01</span><h3>Quiet detail</h3><p>Texture, stitching and proportion do the talking, without asking for attention.</p></article>
           <article><span>02</span><h3>Built for Bangladesh</h3><p>Clothing chosen for local seasons, celebrations and the pace of everyday life.</p></article>
           <article><span>03</span><h3>Clarity at every step</h3><p>Visible stock, useful sizing and support from browsing through delivery.</p></article>
+        </div>
+      </section>
+
+      <section className="journey-section section">
+        <div className="journey-title"><span className="eyebrow">FROM SCREEN TO WARDROBE</span><h2>A considered journey,<br />from first look to first wear.</h2></div>
+        <div className="journey-track">
+          <article><span>01</span><div className="journey-icon">⌕</div><h3>Discover your edit</h3><p>Search by category, colour, size, price and availability to narrow the collection quickly.</p><Link href="/shop">Browse all pieces ↗</Link></article>
+          <article><span>02</span><div className="journey-icon">↔</div><h3>Choose your fit</h3><p>Use measurements, stock by size and product-specific fit notes before adding a piece.</p><Link href="/pages/size-guide">Open the size guide ↗</Link></article>
+          <article><span>03</span><div className="journey-icon">✓</div><h3>Checkout your way</h3><p>Order with Cash on Delivery or submit a bKash or Nagad Send Money reference for review.</p><Link href="/pages/delivery">Delivery information ↗</Link></article>
+          <article><span>04</span><div className="journey-icon">◎</div><h3>Stay in the loop</h3><p>Follow order progress, payment updates and support replies from your Solix account.</p><Link href="/profile">Visit your account ↗</Link></article>
+        </div>
+      </section>
+
+      <section className="guide-section section">
+        <div className="section-heading"><div><span className="eyebrow">BEFORE YOU CHOOSE</span><h2>Useful details, beautifully clear.</h2></div><p>Everything needed to shop with confidence, collected in one place.</p></div>
+        <div className="guide-grid">
+          <Link href="/pages/size-guide" className="guide-card guide-card-dark"><span>01 — FIT</span><h3>Measure once.<br />Choose well.</h3><p>Find garment measurements and a simple guide to selecting your Solix size.</p><b>Read the size guide ↗</b><i aria-hidden="true">↔</i></Link>
+          <Link href="/pages/delivery" className="guide-card guide-card-gold"><span>02 — DELIVERY</span><h3>From Rajbari<br />to your door.</h3><p>See delivery expectations, order handling and the complimentary shipping offer.</p><b>Delivery details ↗</b><i aria-hidden="true">→</i></Link>
+          <Link href="/pages/returns" className="guide-card guide-card-light"><span>03 — AFTERCARE</span><h3>Keep every piece<br />at its best.</h3><p>Review care guidance, returns and size-exchange options before you order.</p><b>Care and returns ↗</b><i aria-hidden="true">◇</i></Link>
         </div>
       </section>
 

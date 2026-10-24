@@ -63,7 +63,7 @@ export class AuthController {
       req.cookies?.solix_refresh_token as string | undefined,
     );
     res.clearCookie('solix_access_token', { ...cookieBase, path: '/' });
-    res.clearCookie('solix_refresh_token', { ...cookieBase, path: '/auth' });
+    res.clearCookie('solix_refresh_token', { ...cookieBase, path: '/' });
     return result;
   }
 
@@ -82,7 +82,7 @@ export class AuthController {
   ) {
     const result = await this.authService.changePassword(user.id, dto);
     res.clearCookie('solix_access_token', { ...cookieBase, path: '/' });
-    res.clearCookie('solix_refresh_token', { ...cookieBase, path: '/auth' });
+    res.clearCookie('solix_refresh_token', { ...cookieBase, path: '/' });
     return result;
   }
 
@@ -97,7 +97,7 @@ export class AuthController {
     });
     res.cookie('solix_refresh_token', tokens.refreshToken, {
       ...cookieBase,
-      path: '/auth',
+      path: '/',
       maxAge: 30 * 86400000,
     });
   }

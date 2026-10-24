@@ -274,12 +274,11 @@ export class ProductsService {
     });
     return { message: 'Product archived', id };
   }
-  async uploadImage(id: string, file: Express.Multer.File) {
-    if (!file)
-      throw new BadRequestException('Choose a JPEG, PNG or WebP image');
+  async uploadImage(id: string, imageUrl: string) {
+    if (!imageUrl) throw new BadRequestException('Choose an image');
     await this.findOne(id);
     const image = {
-      imageUrl: `uploads/${file.filename}`,
+      imageUrl,
       alt: '',
       sortOrder: 0,
       isPrimary: false,

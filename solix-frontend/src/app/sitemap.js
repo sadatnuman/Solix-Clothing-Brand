@@ -1,4 +1,4 @@
-const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const apiBase = process.env.SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 const siteBase = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 
 async function safeJson(path) {

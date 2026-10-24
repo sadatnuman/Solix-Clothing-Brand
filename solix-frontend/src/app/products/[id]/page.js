@@ -1,7 +1,14 @@
 import ProductClient from './ProductClient';
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const apiBase = process.env.SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 const siteBase = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
+
+function productImageUrl(image) {
+  if (!image) return undefined;
+  if (image.startsWith('http')) return image;
+  if (image.startsWith('/images/')) return `${siteBase}${image}`;
+  return `${apiBase}/${image.replace(/^\//, '')}`;
+}
 
 async function productByRoute(id) {
   const objectId = /^[a-f\d]{24}$/i.test(String(id));
@@ -22,11 +29,7 @@ export async function generateMetadata({ params }) {
   const product = await productByRoute(id);
   if (!product) return { title: 'Product' };
   const image = product.images?.[0]?.imageUrl;
-  const imageUrl = image
-    ? image.startsWith('http')
-      ? image
-      : `${siteBase}${image.startsWith('/') ? '' : '/'}${image}`
-    : undefined;
+  const imageUrl = productImageUrl(image);
   return {
     title: { absolute: product.seoTitle || `${product.name} | Solix Bangladesh` },
     description: product.seoDescription || product.description,
@@ -59,11 +62,7 @@ export default async function ProductPage({ params }) {
         '@type': 'Product',
         name: product.name,
         description: product.seoDescription || product.description,
-        image: (product.images || []).map((item) =>
-          item.imageUrl.startsWith('http')
-            ? item.imageUrl
-            : `${siteBase}${item.imageUrl.startsWith('/') ? '' : '/'}${item.imageUrl}`,
-        ),
+        image: (product.images || []).map((item) => productImageUrl(item.imageUrl)),
         sku: product.variants?.[0]?.sku,
         brand: { '@type': 'Brand', name: 'Solix' },
         offers: {

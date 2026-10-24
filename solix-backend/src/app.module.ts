@@ -17,6 +17,7 @@ import { CommerceModule } from './commerce/commerce.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { APP_GUARD } from '@nestjs/core';
       }),
     }),
     DatabaseModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     CategoriesModule,

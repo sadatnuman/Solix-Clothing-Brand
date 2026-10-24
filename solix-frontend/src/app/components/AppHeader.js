@@ -64,11 +64,11 @@ export default function AppHeader() {
         <Link href="/" className="brand-logo" aria-label="Solix clothing brand home">
           <span className="brand-logo-frame">
             <Image
-              src="/images/solix-royal-logo.jpg"
+              src="/images/solix-royal-logo-transparent.png"
               alt=""
               fill
               priority
-              sizes="76px"
+              sizes="84px"
               className="brand-logo-art"
             />
           </span>

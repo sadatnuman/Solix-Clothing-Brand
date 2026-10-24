@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import api, { errorMessage } from "../../lib/api";
+import styles from "./help.module.css";
 
 const fallback = {
   about: ["About Solix", "Solix is a Rajbari clothing store built around considered style, clear sizing and personal local service."],
@@ -70,11 +71,11 @@ function Guide({ slug }) {
   const guide = guides[slug];
   if (!guide) return null;
   return <>
-    {guide.items && <div className="faq-list">{guide.items.map(([question, answer]) => <details key={question}><summary>{question}<span>＋</span></summary><p>{answer}</p></details>)}</div>}
-    {guide.sizes && <div className="size-guide-wrap"><table className="size-guide-table"><thead><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hip</th></tr></thead><tbody>{guide.sizes.map((row) => <tr key={row[0]}>{row.map((cell) => <td key={cell}>{cell}{cell !== row[0] && "″"}</td>)}</tr>)}</tbody></table><p>Body measurements in inches. Always read the individual product fit note.</p></div>}
-    {(guide.steps || guide.notes) && <div className="help-card-grid">{(guide.steps || guide.notes).map(([number, title, body], index) => <article key={title || number}><span>{guide.steps ? number : `0${index + 1}`}</span><h2>{guide.steps ? title : number}</h2><p>{guide.steps ? body : title}</p></article>)}</div>}
-    {guide.facts && <section className="help-facts"><h2>Good to know.</h2><ul>{guide.facts.map((fact) => <li key={fact}>{fact}</li>)}</ul></section>}
-    <aside className="help-action"><div><span className="eyebrow">NEXT STEP</span><h2>{guide.action[0]}</h2></div><Link className="button dark" href={guide.action[2]}>{guide.action[1]} <span>↗</span></Link></aside>
+    {guide.items && <div className={styles.faqList}>{guide.items.map(([question, answer], index) => <details key={question}><summary><b>{String(index + 1).padStart(2, "0")}</b>{question}<span>＋</span></summary><p>{answer}</p></details>)}</div>}
+    {guide.sizes && <div className={styles.sizeWrap}><div className={styles.sizeHeader}><span>BODY MEASUREMENTS</span><b>INCHES</b></div><table className={styles.sizeTable}><thead><tr><th>Size</th><th>Chest</th><th>Waist</th><th>Hip</th></tr></thead><tbody>{guide.sizes.map((row) => <tr key={row[0]}>{row.map((cell) => <td key={cell}>{cell}{cell !== row[0] && "″"}</td>)}</tr>)}</tbody></table><p>Use this as a starting point. The fit note on the individual product page always takes priority.</p></div>}
+    {(guide.steps || guide.notes) && <div className={`${styles.cardGrid} ${guide.notes ? styles.threeCards : ""}`}>{(guide.steps || guide.notes).map(([number, title, body], index) => <article key={title || number}><span>{guide.steps ? number : `0${index + 1}`}</span><div className={styles.stepMark}>{index + 1}</div><h2>{guide.steps ? title : number}</h2><p>{guide.steps ? body : title}</p></article>)}</div>}
+    {guide.facts && <section className={styles.facts}><h2>Good to know.</h2><ul>{guide.facts.map((fact) => <li key={fact}><span>✓</span>{fact}</li>)}</ul></section>}
+    <aside className={styles.action}><div><span className="eyebrow">NEXT STEP</span><h2>{guide.action[0]}</h2></div><Link className="button dark" href={guide.action[2]}>{guide.action[1]} <span>↗</span></Link></aside>
   </>;
 }
 
@@ -90,8 +91,8 @@ export default function ContentPage() {
     });
   }, [slug]);
   const guide = guides[slug];
-  return <main className={`section content-page ${guide ? "help-page" : ""}`}>
+  return <main className={`section content-page ${guide ? styles.page : ""}`}>
     <span className="eyebrow">{guide?.label || "SOLIX / INFORMATION"}</span>
-    {error ? <div className="empty-state">{error}</div> : page ? <><header className="help-heading"><h1>{page.title}</h1><p>{String(page.body || "").split("\n")[0]}</p></header><Guide slug={slug} /></> : <div className="skeleton detail-loading" />}
+    {error ? <div className="empty-state">{error}</div> : page ? <><header className={styles.heading}><div><span className={styles.issue}>SOLIX SERVICE NOTES · 2026</span><h1>{page.title}</h1></div><p>{String(page.body || "").split("\n")[0]}</p></header><Guide slug={slug} /></> : <div className="skeleton detail-loading" />}
   </main>;
 }

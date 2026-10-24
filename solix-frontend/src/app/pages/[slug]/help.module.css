@@ -1,0 +1,36 @@
+.page{max-width:1440px!important;padding:96px 5% 120px!important}
+.heading{position:relative;display:grid;grid-template-columns:1.35fr .65fr;gap:8%;align-items:end;margin:22px 0 70px;padding:50px;background:#111858;color:#f8f4e9;overflow:hidden}
+.heading:after{content:"S";position:absolute;right:-25px;top:-75px;font-size:300px;font-weight:800;line-height:1;color:#ffffff08;pointer-events:none}
+.issue{display:block;color:#d4ae50;font-size:10px;letter-spacing:.2em;margin-bottom:60px}
+.heading h1{position:relative;z-index:1;max-width:850px;font-size:clamp(58px,7vw,108px);line-height:.86;font-weight:500;letter-spacing:-.075em;margin:0}
+.heading>p{position:relative;z-index:1;color:#d1d3df;font-size:18px;line-height:1.7;margin:0;padding-bottom:5px}
+.faqList{max-width:1120px;margin-left:auto;border-top:1px solid #20231d}
+.faqList details{border-bottom:1px solid #b9b6ab}
+.faqList summary{list-style:none;display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:20px;padding:28px 4px;font-size:21px;font-weight:600;cursor:pointer}
+.faqList summary::-webkit-details-marker{display:none}
+.faqList summary b{color:#a47b22;font-size:10px;letter-spacing:.12em}
+.faqList summary span{display:grid;place-items:center;width:38px;height:38px;border:1px solid #aaa89e;border-radius:50%;color:#a47b22;font-size:22px;transition:transform .25s,background .25s}
+.faqList details[open] summary span{transform:rotate(45deg);background:#111858;color:#fff}
+.faqList details p{max-width:790px;margin:0 0 28px 74px;color:#676a60;font-size:15px;line-height:1.8}
+.sizeWrap{padding:45px;background:#20231d;color:#f8f4e9;box-shadow:20px 20px 0 #d4ae50}
+.sizeHeader{display:flex;justify-content:space-between;gap:20px;padding-bottom:24px;border-bottom:1px solid #ffffff32;color:#d9ba65;font-size:10px;letter-spacing:.16em}
+.sizeTable{width:100%;color:#f8f4e9}
+.sizeTable th,.sizeTable td{padding:20px 18px;border-bottom:1px solid #ffffff25}
+.sizeTable th{color:#d9ba65;font-size:10px;text-transform:uppercase;letter-spacing:.15em}
+.sizeTable td{font-size:17px}.sizeTable td:first-child{font-weight:700;color:#e6c66b}
+.sizeWrap>p{color:#bfc2b7;margin:26px 0 0;font-size:13px}
+.cardGrid{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #20231d;border-bottom:1px solid #20231d}
+.cardGrid article{position:relative;min-height:350px;padding:30px 26px 35px;border-right:1px solid #b9b6ab;overflow:hidden;transition:transform .25s,background .25s}
+.cardGrid article:last-child{border-right:0}.cardGrid article:hover{background:#e8e4d7;transform:translateY(-7px)}
+.cardGrid article>span{color:#a47b22;font-size:10px;letter-spacing:.12em}
+.stepMark{position:absolute;right:-8px;top:8px;font-size:145px;font-weight:800;line-height:1;color:#11185809}
+.cardGrid h2{position:relative;font-size:27px;font-weight:500;margin:115px 0 16px}.cardGrid p{position:relative;font-size:14px;line-height:1.7}
+.threeCards{grid-template-columns:repeat(3,1fr)}
+.facts{display:grid;grid-template-columns:.75fr 1.25fr;gap:8%;padding:65px 0;border-bottom:1px solid #b9b6ab}
+.facts h2{font-size:42px;font-weight:500;margin:0}.facts ul{margin:0;padding:0;list-style:none}
+.facts li{display:grid;grid-template-columns:35px 1fr;align-items:center;padding:15px 0;border-bottom:1px solid #d3d0c5;color:#5f6259}
+.facts li span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#d4ae50;color:#111858;font-weight:800}
+.action{display:flex;align-items:center;justify-content:space-between;gap:35px;margin-top:75px;padding:45px 50px;background:#e2e6d8}
+.action h2{font-size:38px;font-weight:500;margin:12px 0 0}
+@media(max-width:900px){.heading{grid-template-columns:1fr}.heading>p{max-width:650px}.cardGrid{grid-template-columns:1fr 1fr}.cardGrid article:nth-child(2){border-right:0}.threeCards{grid-template-columns:1fr}.threeCards article{border-right:0;border-bottom:1px solid #b9b6ab}.facts{grid-template-columns:1fr}.action{align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){.page{padding:58px 20px 80px!important}.heading{padding:32px 24px;margin-bottom:45px}.issue{margin-bottom:38px}.heading h1{font-size:54px}.heading>p{font-size:15px}.faqList summary{grid-template-columns:32px 1fr auto;gap:10px;font-size:16px;padding:20px 0}.faqList summary span{width:32px;height:32px}.faqList details p{margin-left:42px;font-size:14px}.sizeWrap{padding:22px 14px;box-shadow:8px 8px 0 #d4ae50;overflow:auto}.sizeTable{min-width:520px}.sizeTable th,.sizeTable td{padding:15px 11px}.cardGrid{grid-template-columns:1fr}.cardGrid article{border-right:0;border-bottom:1px solid #b9b6ab;min-height:250px}.cardGrid h2{margin-top:70px}.action{padding:30px 24px}.action h2{font-size:30px}}

@@ -61,7 +61,7 @@ export class StorageService {
     );
   }
 
-  async storeImage(bytes: Buffer, folder: 'products' | 'payments') {
+  async storeImage(bytes: Buffer, folder: 'products' | 'payments' | 'catalog') {
     const extension = this.imageExtension(bytes);
     const id = randomUUID();
     if (this.provider === 'cloudinary') {

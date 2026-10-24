@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import api, { errorMessage } from '../lib/api';
+import api, { errorMessage, imageUrl } from '../lib/api';
 
 const categoryImages = {
   Panjabi: '/images/catalog/royal-panjabi.png',
@@ -40,10 +40,11 @@ export default function Categories() {
         {data?.map((category) => (
           <Link key={category.id} href={`/categories/${category.id}`} className="collection-card">
             <Image
-              src={categoryImages[category.name] || '/images/essentials.jpg'}
+              src={category.imageUrl ? imageUrl(category.imageUrl) : categoryImages[category.name] || '/images/essentials.jpg'}
               alt={category.name}
               fill
               sizes="(max-width: 760px) 100vw, 50vw"
+              unoptimized={Boolean(category.imageUrl)}
             />
             <div>
               <span className="eyebrow">SOLIX COLLECTION</span>

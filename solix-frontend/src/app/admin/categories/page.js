@@ -2,15 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "../../lib/api";
+import Image from "next/image";
+import api, { imageUrl } from "../../lib/api";
 import { getAuthConfig, getToken, removeToken } from "../../lib/auth";
+import AdminImagePicker, { uploadCatalogImage } from "../../components/AdminImagePicker";
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    imageUrl: "",
   });
+  const [imageFile, setImageFile] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -82,7 +86,9 @@ export default function AdminCategoriesPage() {
     setFormData({
       name: "",
       description: "",
+      imageUrl: "",
     });
+    setImageFile(null);
     setEditingId(null);
   };
 
@@ -90,7 +96,9 @@ export default function AdminCategoriesPage() {
     setFormData({
       name: category.name || "",
       description: category.description || "",
+      imageUrl: category.imageUrl || "",
     });
+    setImageFile(null);
     setEditingId(category.id);
     setMessage("");
     setError("");
@@ -103,9 +111,11 @@ export default function AdminCategoriesPage() {
     setMessage("");
 
     try {
+      const uploadedImage = imageFile ? await uploadCatalogImage(api, imageFile) : "";
       const payload = {
         name: formData.name,
         description: formData.description || undefined,
+        imageUrl: uploadedImage || formData.imageUrl || undefined,
       };
 
       if (editingId) {
@@ -196,6 +206,8 @@ export default function AdminCategoriesPage() {
               />
             </div>
 
+            <AdminImagePicker label="Category cover image" file={imageFile} currentUrl={formData.imageUrl} onChange={setImageFile} />
+
             <div>
               <label className="block text-sm mb-1">Description</label>
               <textarea
@@ -235,6 +247,7 @@ export default function AdminCategoriesPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {categories.map((category) => (
               <div key={category.id} className="border rounded-lg bg-white p-4">
+                {category.imageUrl && <div className="admin-record-image"><Image src={imageUrl(category.imageUrl)} alt={`${category.name} category`} fill sizes="420px" unoptimized /></div>}
                 <h2 className="text-lg font-medium mb-2">{category.name}</h2>
 
                 <p className="text-sm text-slate-600 mb-4">

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "../../lib/api";
+import Image from "next/image";
+import api, { imageUrl } from "../../lib/api";
 import { getAuthConfig, getToken, removeToken } from "../../lib/auth";
+import AdminImagePicker from "../../components/AdminImagePicker";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
@@ -16,6 +18,7 @@ export default function AdminProductsPage() {
     sizeGuide: "",
   });
   const [imageFiles, setImageFiles] = useState({});
+  const [formImage, setFormImage] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -98,6 +101,7 @@ export default function AdminProductsPage() {
       sizeGuide: "",
     });
     setEditingId(null);
+    setFormImage(null);
   };
 
   const handleEdit = (product) => {
@@ -109,6 +113,7 @@ export default function AdminProductsPage() {
       sizeGuide: product.sizeGuide || "",
     });
     setEditingId(product.id);
+    setFormImage(null);
     setMessage("");
     setError("");
   };
@@ -128,12 +133,21 @@ export default function AdminProductsPage() {
         sizeGuide: formData.sizeGuide || undefined,
       };
 
+      let productId = editingId;
       if (editingId) {
         await api.patch(`/products/${editingId}`, payload, getAuthConfig());
         setMessage("Product updated successfully.");
       } else {
-        await api.post("/products", payload, getAuthConfig());
+        const created = await api.post("/products", payload, getAuthConfig());
+        productId = created.data.data.id;
         setMessage("Product created successfully.");
+      }
+
+      if (formImage && productId) {
+        const uploadData = new FormData();
+        uploadData.append("file", formImage);
+        await api.post(`/products/${productId}/images`, uploadData, getAuthConfig());
+        setMessage(editingId ? "Product and image updated successfully." : "Product created with its first image.");
       }
 
       resetForm();
@@ -275,6 +289,13 @@ export default function AdminProductsPage() {
               </select>
             </div>
 
+            <AdminImagePicker
+              label={editingId ? "Add another product image" : "Primary product image"}
+              file={formImage}
+              currentUrl={editingId ? products.find((product) => product.id === editingId)?.images?.[0]?.imageUrl : ""}
+              onChange={setFormImage}
+            />
+
             <div>
               <label className="block text-sm mb-1">Name</label>
               <input
@@ -350,6 +371,7 @@ export default function AdminProductsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {products.map((product) => (
               <div key={product.id} className="border rounded-lg bg-white p-4">
+                {product.images?.[0]?.imageUrl && <div className="admin-record-image product-admin-image"><Image src={imageUrl(product.images[0].imageUrl)} alt={product.images[0].alt || product.name} fill sizes="420px" unoptimized /></div>}
                 <h2 className="text-lg font-medium mb-2">{product.name}</h2>
 
                 <p className="text-sm mb-1">

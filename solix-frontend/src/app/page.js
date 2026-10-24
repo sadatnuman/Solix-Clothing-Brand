@@ -148,7 +148,7 @@ export default function Home() {
           <DepthScene className="journey-art">
             <div className="journey-photo journey-photo-main"><Image src="/images/catalog/oxford-shirt.png" alt="Solix Oxford shirt" fill sizes="(max-width: 760px) 58vw, 26vw" /></div>
             <div className="journey-photo journey-photo-detail"><Image src="/images/catalog/royal-watch.png" alt="Solix Crown Dial Watch" fill sizes="(max-width: 760px) 34vw, 15vw" /></div>
-            <span className="journey-stamp">04<br /><b>STEPS</b><br />ONE SOLIX</span>
+            <span className="journey-stamp" aria-label="Four steps, one Solix"><strong>04</strong><em>STEPS TO</em><b>ONE SOLIX</b></span>
           </DepthScene>
         </div>
         <div className="journey-track">

@@ -2,6 +2,118 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Featured from './components/Featured';
 import Tilt from './components/Tilt';
+import DepthScene from './components/DepthScene';
 import RecentlyViewed from './components/RecentlyViewed';
-export const metadata={title:{absolute:'Solix Bangladesh | Premium Clothing, Panjabi & Watches'},description:'Shop Solix Bangladesh for premium Panjabi, modern clothing, women’s wear and watches with complimentary delivery, Cash on Delivery and manual Send Money.',alternates:{canonical:'/'},openGraph:{title:'Solix Bangladesh | Royal elegance, made wearable',description:'Premium Panjabi, modern essentials, women’s wear and watches from Rajbari, Bangladesh.',url:'/',images:[{url:'/images/solix-social-preview.png',width:1200,height:630,alt:'Solix Bangladesh royal fashion collection'}]},twitter:{card:'summary_large_image',images:['/images/solix-social-preview.png']}};
-export default function Home(){return <main className="home"><section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="tiny-cross">✳</span> THE ROYAL EDIT — BANGLADESH</div><h1>Not just worn.<br/><em>Lived in.</em></h1><p>Elevate your style with the timeless luxury of royal elegance.<br/>Meet considered pieces made for every part of your life.</p><Link href="/shop" className="button dark">Find your Solix <span>↗</span></Link><div className="hero-bottom"><span className="hero-index">01 / 03</span><span className="hero-line"/><span>ROYAL ELEGANCE. EVERYDAY EASE.</span></div></div><div className="hero-visual"><Image src="/images/campaign.jpg" alt="Friends in effortless everyday outfits on a city street" fill priority sizes="(max-width: 760px) 100vw, 55vw" className="hero-image"/><div className="image-grain"/><span className="hero-photo-label">OFF DUTY. ON YOUR TERMS.</span><div className="orbit-stamp" aria-hidden="true"><span>THE ROYAL</span><b>S</b><span>SOLIX · RAJBARI</span></div><Tilt className="floating-note"><span>THE NEW PERSPECTIVE</span><strong>Made for<br/>your everyday.</strong><Link href="/shop">Explore the edit ↗</Link></Tilt><div className="image-caption"><span>THE ART OF KEEPING IT SIMPLE</span><span>SOLIX BANGLADESH</span></div></div></section><div className="brand-strip"><span>ROYAL BY DESIGN</span><b>✳</b><span>PREMIUM PANJABI</span><b>✳</b><span>WATCHES FOR HIM & HER</span><b>✳</b><span>WINTER COLLECTION</span><b>✳</b><span>BAGGY TROUSERS</span></div><section className="section"><div className="section-heading"><div><span className="eyebrow">THE PIECES YOU COME BACK TO</span><h2>New in. Already you.</h2></div><Link className="text-link" href="/shop">Shop the collection ↗</Link></div><Featured /></section><section className="collection-grid section"><Link href="/shop?category=Panjabi" className="collection-card"><Image src="/images/catalog/royal-panjabi.png" alt="Solix Royal Ivory Panjabi" fill sizes="50vw"/><div><span className="eyebrow">01 — ROYAL ELEGANCE</span><h2>Premium Panjabi.</h2><span>Discover occasion wear ↗</span></div></Link><Link href="/shop?category=Watches" className="collection-card"><Image src="/images/catalog/royal-watch.png" alt="Solix Crown Dial Watch" fill sizes="50vw"/><div><span className="eyebrow">02 — THE FINISHING TOUCH</span><h2>Watches for everyone.</h2><span>Explore the collection ↗</span></div></Link></section><RecentlyViewed/><section id="story" className="story section"><div className="story-art royal-story-mark"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix royal crowned S" width={300} height={323}/><span>BAHARPUR · RAJBARI<br/>BANGLADESH</span></div><div><span className="eyebrow">THE SOLIX POINT OF VIEW</span><h2>Royal elegance,<br/>made wearable.</h2><p>Solix brings premium Panjabi, modern essentials and considered accessories together for life in Bangladesh.</p><p>From Baharpur, Rajbari, we design for celebrations, everyday confidence and everything in between.</p><div className="story-links"><Link href="/pages/about" className="text-link">Meet Solix ↗</Link><Link href="/contact" className="text-link">Visit the Baharpur store ↗</Link></div></div></section><section className="service-strip"><div><span>01</span><h3>Considered choice</h3><p>Clear sizing, honest stock and detailed materials.</p></div><div><span>02</span><h3>A simpler checkout</h3><p>Cash on delivery or verified Send Money.</p></div><div><span>03</span><h3>Local support</h3><p>Website inbox plus our Rajbari store contact.</p></div></section></main>}
+
+const socialPreview = '/images/solix-linkedin-preview-v2.png';
+
+export const metadata = {
+  title: { absolute: 'Solix Bangladesh | Premium Clothing, Panjabi & Watches' },
+  description: 'Shop Solix Bangladesh for premium Panjabi, modern clothing, women’s wear and watches with complimentary delivery, Cash on Delivery and manual Send Money.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'Solix Bangladesh | Royal elegance, made wearable',
+    description: 'Premium Panjabi, modern essentials, women’s wear and watches from Rajbari, Bangladesh.',
+    url: '/',
+    images: [{ url: socialPreview, type: 'image/png', width: 1200, height: 627, alt: 'Solix Bangladesh royal fashion collection' }],
+  },
+  twitter: { card: 'summary_large_image', images: [socialPreview] },
+};
+
+const categories = [
+  { href: '/shop?category=Panjabi', image: '/images/catalog/royal-panjabi.png', index: '01', name: 'Panjabi', copy: 'Ceremony, redefined.' },
+  { href: '/shop?category=Shirts', image: '/images/catalog/oxford-shirt.png', index: '02', name: 'Shirts', copy: 'Clean lines for every day.' },
+  { href: '/shop?category=Jackets', image: '/images/catalog/bomber-jacket.png', index: '03', name: 'Layers', copy: 'Ready when the weather turns.' },
+  { href: '/shop?category=Watches', image: '/images/catalog/royal-watch.png', index: '04', name: 'Watches', copy: 'A considered finishing touch.' },
+];
+
+export default function Home() {
+  return (
+    <main className="home">
+      <section className="hero">
+        <div className="hero-copy">
+          <div className="eyebrow"><span className="tiny-cross">✳</span> THE ROYAL EDIT — BANGLADESH</div>
+          <h1>Not just worn.<br /><em>Lived in.</em></h1>
+          <p>Elevate your style with the timeless luxury of royal elegance.<br />Meet considered pieces made for every part of your life.</p>
+          <Link href="/shop" className="button dark">Find your Solix <span>↗</span></Link>
+          <div className="hero-bottom"><span className="hero-index">01 / 03</span><span className="hero-line" /><span>ROYAL ELEGANCE. EVERYDAY EASE.</span></div>
+        </div>
+        <div className="hero-visual">
+          <Image src="/images/campaign.jpg" alt="Friends in effortless everyday outfits on a city street" fill priority sizes="(max-width: 760px) 100vw, 55vw" className="hero-image" />
+          <div className="image-grain" />
+          <span className="hero-photo-label">OFF DUTY. ON YOUR TERMS.</span>
+          <div className="orbit-stamp" aria-hidden="true"><span>THE ROYAL</span><b>S</b><span>SOLIX · RAJBARI</span></div>
+          <Tilt className="floating-note"><span>THE NEW PERSPECTIVE</span><strong>Made for<br />your everyday.</strong><Link href="/shop">Explore the edit ↗</Link></Tilt>
+          <div className="image-caption"><span>THE ART OF KEEPING IT SIMPLE</span><span>SOLIX BANGLADESH</span></div>
+        </div>
+      </section>
+
+      <div className="brand-strip"><span>ROYAL BY DESIGN</span><b>✳</b><span>PREMIUM PANJABI</span><b>✳</b><span>WATCHES FOR HIM &amp; HER</span><b>✳</b><span>WINTER COLLECTION</span><b>✳</b><span>BAGGY TROUSERS</span></div>
+
+      <section className="section">
+        <div className="section-heading"><div><span className="eyebrow">THE PIECES YOU COME BACK TO</span><h2>New in. Already you.</h2></div><Link className="text-link" href="/shop">Shop the collection ↗</Link></div>
+        <Featured />
+      </section>
+
+      <section className="atelier-section section">
+        <div className="atelier-copy">
+          <span className="eyebrow">THE SOLIX STANDARD</span>
+          <h2>Details that reward<br />a closer look.</h2>
+          <p>Rich texture, thoughtful proportions and confident colour come together in pieces designed to be seen from every angle.</p>
+          <div className="atelier-points"><span><b>01</b> Premium fabric</span><span><b>02</b> Purposeful fit</span><span><b>03</b> Lasting finish</span></div>
+          <Link href="/shop" className="button dark">Explore every detail <span>↗</span></Link>
+        </div>
+        <DepthScene className="atelier-stage">
+          <div className="atelier-glow" aria-hidden="true" />
+          <div className="atelier-card atelier-back"><Image src="/images/catalog/royal-watch.png" alt="Solix Crown Dial Watch" fill sizes="(max-width: 760px) 48vw, 22vw" /></div>
+          <div className="atelier-card atelier-main"><Image src="/images/catalog/royal-panjabi.png" alt="Solix Royal Ivory Panjabi" fill sizes="(max-width: 760px) 65vw, 28vw" /></div>
+          <div className="atelier-card atelier-front"><Image src="/images/catalog/bomber-jacket.png" alt="Solix City Bomber Jacket" fill sizes="(max-width: 760px) 38vw, 17vw" /></div>
+          <span className="atelier-seal">SOLIX<br /><b>S</b><br />RAJBARI</span>
+        </DepthScene>
+      </section>
+
+      <section className="collection-grid section">
+        <Link href="/shop?category=Panjabi" className="collection-card"><Image src="/images/catalog/royal-panjabi.png" alt="Solix Royal Ivory Panjabi" fill sizes="50vw" /><div><span className="eyebrow">01 — ROYAL ELEGANCE</span><h2>Premium Panjabi.</h2><span>Discover occasion wear ↗</span></div></Link>
+        <Link href="/shop?category=Watches" className="collection-card"><Image src="/images/catalog/royal-watch.png" alt="Solix Crown Dial Watch" fill sizes="50vw" /><div><span className="eyebrow">02 — THE FINISHING TOUCH</span><h2>Watches for everyone.</h2><span>Explore the collection ↗</span></div></Link>
+      </section>
+
+      <section className="category-runway section">
+        <div className="section-heading"><div><span className="eyebrow">CHOOSE YOUR RHYTHM</span><h2>One wardrobe. Many lives.</h2></div><p>Move from ceremony to the everyday without losing your point of view.</p></div>
+        <div className="runway-grid">
+          {categories.map((category) => (
+            <Tilt key={category.name} className="runway-tilt">
+              <Link href={category.href} className="runway-card">
+                <Image src={category.image} alt={`Shop Solix ${category.name}`} fill sizes="(max-width: 760px) 80vw, 24vw" />
+                <span className="runway-number">{category.index}</span>
+                <div><h3>{category.name}</h3><p>{category.copy}</p><span>Explore ↗</span></div>
+              </Link>
+            </Tilt>
+          ))}
+        </div>
+      </section>
+
+      <RecentlyViewed />
+
+      <section id="story" className="story section">
+        <div className="story-art royal-story-mark"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix royal crowned S" width={300} height={323} /><span>BAHARPUR · RAJBARI<br />BANGLADESH</span></div>
+        <div><span className="eyebrow">THE SOLIX POINT OF VIEW</span><h2>Royal elegance,<br />made wearable.</h2><p>Solix brings premium Panjabi, modern essentials and considered accessories together for life in Bangladesh.</p><p>From Baharpur, Rajbari, we design for celebrations, everyday confidence and everything in between.</p><div className="story-links"><Link href="/pages/about" className="text-link">Meet Solix ↗</Link><Link href="/contact" className="text-link">Visit the Baharpur store ↗</Link></div></div>
+      </section>
+
+      <section className="manifesto section">
+        <div className="manifesto-intro"><span className="eyebrow">WHY SOLIX</span><h2>Made with intent.<br />Worn on repeat.</h2></div>
+        <div className="manifesto-grid">
+          <article><span>01</span><h3>Quiet detail</h3><p>Texture, stitching and proportion do the talking, without asking for attention.</p></article>
+          <article><span>02</span><h3>Built for Bangladesh</h3><p>Clothing chosen for local seasons, celebrations and the pace of everyday life.</p></article>
+          <article><span>03</span><h3>Clarity at every step</h3><p>Visible stock, useful sizing and support from browsing through delivery.</p></article>
+        </div>
+      </section>
+
+      <section className="visit-banner section">
+        <div><span className="eyebrow">SOLIX IN RAJBARI</span><h2>See the collection<br />in person.</h2><p>Visit us at Baharpur Bazar, beside Ramdia Road. Discover the fabric, fit and finish up close.</p><div className="visit-actions"><a className="button dark" href="https://www.google.com/maps/place/Solix/@23.6848205,89.5658677,18z" target="_blank" rel="noreferrer">Open directions <span>↗</span></a><Link className="text-link" href="/contact">Store details ↗</Link></div></div>
+        <DepthScene className="visit-emblem"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix crowned S emblem" width={260} height={280} /><span>23.6848° N<br />89.5659° E</span></DepthScene>
+      </section>
+
+      <section className="service-strip"><div><span>01</span><h3>Considered choice</h3><p>Clear sizing, honest stock and detailed materials.</p></div><div><span>02</span><h3>A simpler checkout</h3><p>Cash on delivery or verified Send Money.</p></div><div><span>03</span><h3>Local support</h3><p>Website inbox plus our Rajbari store contact.</p></div></section>
+    </main>
+  );
+}

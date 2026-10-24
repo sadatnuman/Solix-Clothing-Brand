@@ -1,10 +1,10 @@
+import { ObjectIdPipe } from '../common/object-id.pipe';
 import {
   Body,
   Controller,
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -14,6 +14,8 @@ import { CreateSizeDto } from './dto/create-size.dto';
 import { UpdateSizeDto } from './dto/update-size.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 
@@ -27,28 +29,31 @@ export class SizesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ObjectIdPipe) id: string) {
     return this.sizesService.findOne(id);
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @Permissions('catalog')
   create(@Body() dto: CreateSizeDto) {
     return this.sizesService.create(dto);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSizeDto) {
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @Permissions('catalog')
+  update(@Param('id', ObjectIdPipe) id: string, @Body() dto: UpdateSizeDto) {
     return this.sizesService.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @Permissions('catalog')
+  remove(@Param('id', ObjectIdPipe) id: string) {
     return this.sizesService.remove(id);
   }
 }

@@ -1,0 +1,5 @@
+"use client";
+import { useEffect, useState } from 'react';
+import api from '../lib/api';
+import ProductCard from './ProductCard';
+export default function Featured() { const [data,setData]=useState(null); const [error,setError]=useState(false); const [attempt,setAttempt]=useState(0); useEffect(()=>{let active=true; api.get('/products').then(r=>{if(active){setData(r.data.data.slice(0,4));setError(false);}}).catch(()=>{if(active)setError(true);}); return()=>{active=false;};},[attempt]); if(error)return <div className="empty-state"><p>The collection is temporarily unavailable.</p><button onClick={()=>{setError(false);setAttempt(attempt+1);}}>Try again ↗</button></div>; if(!data)return <div className="product-grid">{[1,2,3,4].map(i=><div key={i} className="skeleton" aria-label="Loading product" />)}</div>; return data.length ? <div className="product-grid">{data.map(p=><ProductCard key={p.id} product={p}/>)}</div> : <div className="empty-state">A new chapter is on its way. Check back for the collection.</div>; }

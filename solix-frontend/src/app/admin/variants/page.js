@@ -16,6 +16,7 @@ export default function AdminVariantsPage() {
     variantPrice: "",
   });
   const [editingId, setEditingId] = useState(null);
+  const [productFilter, setProductFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -50,12 +51,14 @@ export default function AdminVariantsPage() {
       try {
         const profileResponse = await api.get("/users/profile", getAuthConfig());
 
-        if (profileResponse.data.data.role !== "admin") {
-          setError("Admin access only.");
+        const profile = profileResponse.data.data;
+        if (profile.role === "staff" && !profile.permissions?.includes("catalog")) {
+          setError("Catalog permission is required.");
           setLoading(false);
           return;
         }
 
+        setProductFilter(new URLSearchParams(window.location.search).get("product") || "");
         await Promise.all([fetchVariants(), fetchOptions()]);
       } catch (err) {
         const status = err.response?.status;
@@ -111,10 +114,10 @@ export default function AdminVariantsPage() {
 
     try {
       const payload = {
-        productId: Number(formData.productId),
-        sizeId: Number(formData.sizeId),
+        productId: formData.productId,
+        sizeId: formData.sizeId,
         stockQuantity: Number(formData.stockQuantity),
-        variantPrice: formData.variantPrice ? Number(formData.variantPrice) : undefined,
+        variantPrice: formData.variantPrice ? Number(formData.variantPrice) : editingId ? null : undefined,
       };
 
       if (editingId) {
@@ -136,6 +139,7 @@ export default function AdminVariantsPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Archive this inventory variant?")) return;
     setError("");
     setMessage("");
 
@@ -162,6 +166,13 @@ export default function AdminVariantsPage() {
 
       <h1 className="text-2xl font-semibold mb-6">Manage Product Variants</h1>
 
+      <label className="block text-sm mb-6">Filter inventory by product
+        <select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} className="w-full rounded-md border px-3 py-2 text-sm mt-2">
+          <option value="">All products</option>
+          {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+        </select>
+      </label>
+
       {loading && <p>Loading variants...</p>}
       {error && <p className="text-red-600 mb-4">{error}</p>}
       {message && <p className="mb-4 text-sm">{message}</p>}
@@ -173,7 +184,7 @@ export default function AdminVariantsPage() {
 
             <div>
               <label className="block text-sm mb-1">Product</label>
-              <select name="productId" value={formData.productId} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm">
+              <select required name="productId" value={formData.productId} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm">
                 <option value="">Select product</option>
                 {products.map((product) => (
                   <option key={product.id} value={product.id}>{product.name}</option>
@@ -183,7 +194,7 @@ export default function AdminVariantsPage() {
 
             <div>
               <label className="block text-sm mb-1">Size</label>
-              <select name="sizeId" value={formData.sizeId} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm">
+              <select required name="sizeId" value={formData.sizeId} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm">
                 <option value="">Select size</option>
                 {sizes.map((size) => (
                   <option key={size.id} value={size.id}>{size.name}</option>
@@ -193,12 +204,12 @@ export default function AdminVariantsPage() {
 
             <div>
               <label className="block text-sm mb-1">Stock Quantity</label>
-              <input type="number" name="stockQuantity" value={formData.stockQuantity} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm" />
+              <input required min="0" step="1" type="number" name="stockQuantity" value={formData.stockQuantity} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm" />
             </div>
 
             <div>
               <label className="block text-sm mb-1">Variant Price</label>
-              <input type="number" name="variantPrice" value={formData.variantPrice} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm" />
+              <input min="1" type="number" name="variantPrice" value={formData.variantPrice} onChange={handleChange} className="w-full rounded-md border px-3 py-2 text-sm" />
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -215,7 +226,7 @@ export default function AdminVariantsPage() {
           </form>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {variants.map((variant) => (
+            {variants.filter((variant) => !productFilter || variant.product?.id === productFilter).map((variant) => (
               <div key={variant.id} className="border rounded-lg bg-white p-4">
                 <h2 className="text-lg font-medium mb-2">{variant.product?.name || "Product N/A"}</h2>
                 <p className="text-sm mb-1"><span className="font-medium">Size:</span> {variant.size?.name || "N/A"}</p>
@@ -225,7 +236,7 @@ export default function AdminVariantsPage() {
                 <div className="flex flex-wrap gap-3">
                   <button type="button" onClick={() => router.push(`/admin/variants/${variant.id}`)} className="rounded-md border bg-white px-3 py-2 text-sm">View Details</button>
                   <button type="button" onClick={() => handleEdit(variant)} className="rounded-md border bg-white px-3 py-2 text-sm">Edit</button>
-                  <button type="button" onClick={() => handleDelete(variant.id)} className="rounded-md border bg-white px-3 py-2 text-sm">Delete</button>
+                  <button type="button" onClick={() => handleDelete(variant.id)} className="rounded-md border bg-white px-3 py-2 text-sm">Archive</button>
                 </div>
               </div>
             ))}

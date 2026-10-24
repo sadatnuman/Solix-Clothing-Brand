@@ -1,10 +1,10 @@
+import { IsMongoId } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IsInt, Min } from 'class-validator';
 
 export class AddCartItemDto {
-  @Type(() => Number)
-  @IsInt()
-  productVariantId!: number;
+  @IsMongoId()
+  productVariantId!: string;
 
   @Type(() => Number)
   @IsInt()

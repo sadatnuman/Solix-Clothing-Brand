@@ -1,302 +1,138 @@
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { AddCartItemDto } from './dto/add-cart-item.dto';
+import { CartRecord, VariantRecord } from '../database/types';
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { Cart } from './entities/cart.entity';
-import { CartItem } from './entities/cart-item.entity';
-import { User } from '../users/entities/user.entity';
-import { ProductVariant } from '../product-variants/entities/product-variant.entity';
-
-import { AddCartItemDto } from './dto/add-cart-item.dto';
-import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 @Injectable()
 export class CartService {
   constructor(
-    @InjectRepository(Cart)
-    private readonly cartRepo: Repository<Cart>,
-    @InjectRepository(CartItem)
-    private readonly cartItemRepo: Repository<CartItem>,
-    @InjectRepository(User)
-    private readonly usersRepo: Repository<User>,
-    @InjectRepository(ProductVariant)
-    private readonly productVariantsRepo: Repository<ProductVariant>,
+    @InjectModel('Cart') private readonly carts: Model<CartRecord>,
+    @InjectModel('ProductVariant')
+    private readonly variants: Model<VariantRecord>,
+    @InjectConnection() private readonly db: Connection,
   ) {}
-
-  private calculateUnitPrice(variant: ProductVariant): number {
-    if (variant.variantPrice !== null && variant.variantPrice !== undefined) {
-      return Number(variant.variantPrice);
-    }
-
-    if (!variant.product || variant.product.basePrice === undefined) {
-      throw new BadRequestException(
-        'Product base price not found for this variant',
-      );
-    }
-
-    return Number(variant.product.basePrice);
-  }
-
-  private async getOrCreateCart(userId: number): Promise<Cart> {
-    let cart = await this.cartRepo.findOne({
-      where: { user: { id: userId } },
-      relations: [
-        'user',
-        'items',
-        'items.productVariant',
-        'items.productVariant.product',
-        'items.productVariant.size',
-      ],
+  async getMyCart(user: string) {
+    const cart = await this.carts.findOne({ user }).populate({
+      path: 'items.productVariant',
+      populate: [{ path: 'product' }, { path: 'size' }],
     });
-
-    if (cart) {
-      return cart;
-    }
-
-    const user = await this.usersRepo.findOne({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${userId} not found`);
-    }
-
-    cart = this.cartRepo.create({
-      user,
-      items: [],
-    });
-
-    return this.cartRepo.save(cart);
-  }
-
-  private async buildCartResponse(cart: Cart) {
-    const freshCart = await this.cartRepo.findOne({
-      where: { id: cart.id },
-      relations: [
-        'user',
-        'items',
-        'items.productVariant',
-        'items.productVariant.product',
-        'items.productVariant.product.category',
-        'items.productVariant.size',
-      ],
-    });
-
-    if (!freshCart) {
-      throw new NotFoundException('Cart not found');
-    }
-
-    const totalAmount = freshCart.items.reduce(
-      (sum, item) => sum + Number(item.subtotal),
-      0,
-    );
-
-    return {
-      message: 'Cart fetched successfully',
-      data: {
-        id: freshCart.id,
-        userId: freshCart.user.id,
-        totalItems: freshCart.items.length,
-        totalAmount,
-        items: freshCart.items.map((item) => ({
+    const items = (cart?.items || []).map(
+      (item: import('../database/types').CartItemRecord) => {
+        const v = item.productVariant;
+        const unitPrice = Number(v?.variantPrice ?? v?.product?.basePrice ?? 0);
+        return {
           id: item.id,
           quantity: item.quantity,
-          unitPrice: Number(item.unitPrice),
-          subtotal: Number(item.subtotal),
-          productVariant: {
-            id: item.productVariant.id,
-            stockQuantity: item.productVariant.stockQuantity,
-            variantPrice:
-              item.productVariant.variantPrice !== null
-                ? Number(item.productVariant.variantPrice)
-                : null,
-            size: item.productVariant.size
-              ? {
-                  id: item.productVariant.size.id,
-                  name: item.productVariant.size.name,
-                }
-              : null,
-            product: item.productVariant.product
-              ? {
-                  id: item.productVariant.product.id,
-                  name: item.productVariant.product.name,
-                  slug: item.productVariant.product.slug,
-                  basePrice: Number(item.productVariant.product.basePrice),
-                }
-              : null,
-          },
-        })),
+          unitPrice,
+          subtotal: Math.round(unitPrice * item.quantity * 100) / 100,
+          productVariant: v,
+          unavailable: !v || !v.isActive || !v.product?.isActive,
+        };
+      },
+    );
+    return {
+      data: {
+        id: cart ? String(cart._id) : undefined,
+        userId: user,
+        items,
+        totalItems: items.reduce((n, i) => n + i.quantity, 0),
+        totalAmount:
+          Math.round(items.reduce((n, i) => n + i.subtotal, 0) * 100) / 100,
       },
     };
   }
-
-  async getMyCart(userId: number) {
-    const cart = await this.getOrCreateCart(userId);
-    return this.buildCartResponse(cart);
-  }
-
-  async addItem(userId: number, dto: AddCartItemDto) {
-    const cart = await this.getOrCreateCart(userId);
-
-    const variant = await this.productVariantsRepo.findOne({
-      where: { id: dto.productVariantId },
-      relations: ['product', 'size'],
-    });
-
-    if (!variant) {
-      throw new NotFoundException(
-        `Product variant with id ${dto.productVariantId} not found`,
+  async addItem(user: string, dto: AddCartItemDto) {
+    // Initialize before the transaction; the unique user index resolves first-cart races.
+    try {
+      await this.carts.updateOne(
+        { user },
+        { $setOnInsert: { user, items: [] } },
+        { upsert: true },
       );
+    } catch (e) {
+      if (!(e instanceof Error) || !('code' in e) || e.code !== 11000) throw e;
     }
-
-    if (variant.stockQuantity < dto.quantity) {
-      throw new BadRequestException(
-        'Requested quantity exceeds available stock',
+    await this.db.transaction(async (session) => {
+      const variant = await this.variants
+        .findOne({ _id: dto.productVariantId, isActive: true })
+        .populate('product')
+        .session(session);
+      if (!variant || !variant.product?.isActive)
+        throw new NotFoundException('Product is unavailable');
+      const cart = await this.carts.findOne({ user }).session(session);
+      if (!cart) throw new NotFoundException('Cart not found');
+      const item = cart.items.find(
+        (i) => String(i.productVariant) === dto.productVariantId,
       );
-    }
-
-    const existingItem = await this.cartItemRepo.findOne({
-      where: {
-        cart: { id: cart.id },
-        productVariant: { id: dto.productVariantId },
-      },
-      relations: ['cart', 'productVariant', 'productVariant.product'],
-    });
-
-    const unitPrice = this.calculateUnitPrice(variant);
-
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + dto.quantity;
-
-      if (variant.stockQuantity < newQuantity) {
+      const quantity = (item?.quantity || 0) + dto.quantity;
+      if (quantity > variant.stockQuantity)
         throw new BadRequestException(
           'Requested quantity exceeds available stock',
         );
+      if (item) item.quantity = quantity;
+      else cart.items.push({ productVariant: variant._id, quantity });
+      await cart.save({ session });
+    });
+    return this.getMyCart(user);
+  }
+  async updateItem(user: string, id: string, dto: UpdateCartItemDto) {
+    await this.db.transaction(async (session) => {
+      const cart = await this.carts
+        .findOne({ user, 'items._id': id })
+        .session(session);
+      if (!cart) throw new NotFoundException('Cart item not found');
+      const item = cart.items.id(id);
+      if (!item) throw new NotFoundException('Cart item not found');
+      const variant = await this.variants
+        .findOne({ _id: item.productVariant, isActive: true })
+        .populate('product')
+        .session(session);
+      if (
+        !variant ||
+        !variant.product?.isActive ||
+        dto.quantity > variant.stockQuantity
+      )
+        throw new BadRequestException('Requested quantity is unavailable');
+      item.quantity = dto.quantity;
+      await cart.save({ session });
+    });
+    return this.getMyCart(user);
+  }
+  async removeItem(user: string, id: string) {
+    const result = await this.carts.updateOne(
+      { user, 'items._id': id },
+      { $pull: { items: { _id: id } } },
+    );
+    if (!result.matchedCount)
+      throw new NotFoundException('Cart item not found');
+    return { message: 'Item removed', id };
+  }
+  async clearCart(user: string) {
+    await this.carts.updateOne({ user }, { $set: { items: [] } });
+    return { message: 'Cart cleared' };
+  }
+  async merge(
+    user: string,
+    items: Array<{ productVariantId: string; quantity: number }>,
+  ) {
+    for (const item of items.slice(0, 50)) {
+      try {
+        await this.addItem(user, item);
+      } catch (error) {
+        if (
+          !(
+            error instanceof BadRequestException ||
+            error instanceof NotFoundException
+          )
+        )
+          throw error;
       }
-
-      existingItem.quantity = newQuantity;
-      existingItem.unitPrice = unitPrice;
-      existingItem.subtotal = Number((unitPrice * newQuantity).toFixed(2));
-
-      await this.cartItemRepo.save(existingItem);
-
-      return {
-        message: 'Cart item quantity updated successfully',
-        data: {
-          id: existingItem.id,
-          quantity: existingItem.quantity,
-          unitPrice: Number(existingItem.unitPrice),
-          subtotal: Number(existingItem.subtotal),
-        },
-      };
     }
-
-    const cartItem = this.cartItemRepo.create({
-      cart,
-      productVariant: variant,
-      quantity: dto.quantity,
-      unitPrice,
-      subtotal: Number((unitPrice * dto.quantity).toFixed(2)),
-    });
-
-    const saved = await this.cartItemRepo.save(cartItem);
-
-    return {
-      message: 'Item added to cart successfully',
-      data: {
-        id: saved.id,
-        quantity: saved.quantity,
-        unitPrice: Number(saved.unitPrice),
-        subtotal: Number(saved.subtotal),
-      },
-    };
-  }
-
-  async updateItem(userId: number, cartItemId: number, dto: UpdateCartItemDto) {
-    const cartItem = await this.cartItemRepo.findOne({
-      where: { id: cartItemId },
-      relations: [
-        'cart',
-        'cart.user',
-        'productVariant',
-        'productVariant.product',
-      ],
-    });
-
-    if (!cartItem) {
-      throw new NotFoundException(`Cart item with id ${cartItemId} not found`);
-    }
-
-    if (cartItem.cart.user.id !== userId) {
-      throw new ForbiddenException('You can update only your own cart item');
-    }
-
-    if (cartItem.productVariant.stockQuantity < dto.quantity) {
-      throw new BadRequestException(
-        'Requested quantity exceeds available stock',
-      );
-    }
-
-    const unitPrice = this.calculateUnitPrice(cartItem.productVariant);
-
-    cartItem.quantity = dto.quantity;
-    cartItem.unitPrice = unitPrice;
-    cartItem.subtotal = Number((unitPrice * dto.quantity).toFixed(2));
-
-    const updated = await this.cartItemRepo.save(cartItem);
-
-    return {
-      message: 'Cart item updated successfully',
-      data: {
-        id: updated.id,
-        quantity: updated.quantity,
-        unitPrice: Number(updated.unitPrice),
-        subtotal: Number(updated.subtotal),
-      },
-    };
-  }
-
-  async removeItem(userId: number, cartItemId: number) {
-    const cartItem = await this.cartItemRepo.findOne({
-      where: { id: cartItemId },
-      relations: ['cart', 'cart.user'],
-    });
-
-    if (!cartItem) {
-      throw new NotFoundException(`Cart item with id ${cartItemId} not found`);
-    }
-
-    if (cartItem.cart.user.id !== userId) {
-      throw new ForbiddenException('You can remove only your own cart item');
-    }
-
-    await this.cartItemRepo.remove(cartItem);
-
-    return {
-      message: 'Cart item removed successfully',
-      id: cartItemId,
-    };
-  }
-
-  async clearCart(userId: number) {
-    const cart = await this.getOrCreateCart(userId);
-
-    const items = await this.cartItemRepo.find({
-      where: { cart: { id: cart.id } },
-      relations: ['cart'],
-    });
-
-    if (items.length > 0) {
-      await this.cartItemRepo.remove(items);
-    }
-
-    return {
-      message: 'Cart cleared successfully',
-    };
+    return this.getMyCart(user);
   }
 }

@@ -1,102 +1,46 @@
+import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { CategoryRecord, ProductRecord } from '../database/types';
 import {
-  BadRequestException,
   Injectable,
+  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Category } from './entities/category.entity';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 @Injectable()
 export class CategoriesService {
   constructor(
-    @InjectRepository(Category)
-    private readonly categoriesRepo: Repository<Category>,
+    @InjectModel('Category') private readonly records: Model<CategoryRecord>,
+    @InjectModel('Product') private readonly references: Model<ProductRecord>,
   ) {}
-
   async create(dto: CreateCategoryDto) {
-    const existing = await this.categoriesRepo.findOne({
-      where: { name: dto.name },
-    });
-
-    if (existing) {
-      throw new BadRequestException('Category name already exists');
-    }
-
-    const category = this.categoriesRepo.create(dto);
-    const saved = await this.categoriesRepo.save(category);
-
-    return {
-      message: 'Category created successfully',
-      data: saved,
-    };
+    return { data: await this.records.create(dto) };
   }
-
   async findAll() {
-    const categories = await this.categoriesRepo.find({
-      order: { createdAt: 'DESC' },
-    });
-
+    const data = await this.records.find().sort({ createdAt: 1 });
+    return { data, count: data.length };
+  }
+  async findOne(id: string) {
+    const data = await this.records.findById(id);
+    if (!data) throw new NotFoundException('Category not found');
+    return { data };
+  }
+  async update(id: string, dto: UpdateCategoryDto) {
+    await this.findOne(id);
     return {
-      message: 'Categories fetched successfully',
-      count: categories.length,
-      data: categories,
+      data: await this.records.findByIdAndUpdate(
+        id,
+        { $set: dto },
+        { new: true, runValidators: true },
+      ),
     };
   }
-
-  async findOne(id: number) {
-    const category = await this.categoriesRepo.findOne({ where: { id } });
-
-    if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
-    }
-
-    return {
-      message: 'Category fetched successfully',
-      data: category,
-    };
-  }
-
-  async update(id: number, dto: UpdateCategoryDto) {
-    const category = await this.categoriesRepo.findOne({ where: { id } });
-
-    if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
-    }
-
-    if (dto.name) {
-      const existing = await this.categoriesRepo.findOne({
-        where: { name: dto.name },
-      });
-
-      if (existing && existing.id !== id) {
-        throw new BadRequestException('Category name already exists');
-      }
-    }
-
-    Object.assign(category, dto);
-    const updated = await this.categoriesRepo.save(category);
-
-    return {
-      message: 'Category updated successfully',
-      data: updated,
-    };
-  }
-
-  async remove(id: number) {
-    const category = await this.categoriesRepo.findOne({ where: { id } });
-
-    if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
-    }
-
-    await this.categoriesRepo.remove(category);
-
-    return {
-      message: 'Category deleted successfully',
-      id,
-    };
+  async remove(id: string) {
+    await this.findOne(id);
+    if (await this.references.exists({ category: id }))
+      throw new BadRequestException('This category is in use');
+    await this.records.findByIdAndDelete(id);
+    return { message: 'Category deleted', id };
   }
 }

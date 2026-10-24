@@ -1,200 +1,83 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { ProductVariant } from './entities/product-variant.entity';
-import { Product } from '../products/entities/product.entity';
-import { Size } from '../sizes/entities/size.entity';
-
-import { CreateProductVariantDto } from './dto/create-product-variant.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
-
+import { CreateProductVariantDto } from './dto/create-product-variant.dto';
+import { ProductRecord, SizeRecord, VariantRecord } from '../database/types';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 @Injectable()
 export class ProductVariantsService {
   constructor(
-    @InjectRepository(ProductVariant)
-    private readonly variantsRepo: Repository<ProductVariant>,
-    @InjectRepository(Product)
-    private readonly productsRepo: Repository<Product>,
-    @InjectRepository(Size)
-    private readonly sizesRepo: Repository<Size>,
+    @InjectModel('ProductVariant')
+    private readonly variants: Model<VariantRecord>,
+    @InjectModel('Product') private readonly products: Model<ProductRecord>,
+    @InjectModel('Size') private readonly sizes: Model<SizeRecord>,
   ) {}
-
+  private async payload(dto: UpdateProductVariantDto) {
+    const { productId, sizeId, ...fields } = dto;
+    const rest: UpdateProductVariantDto & { product?: string; size?: string } =
+      fields;
+    if (productId) {
+      if (!(await this.products.exists({ _id: productId, isActive: true })))
+        throw new NotFoundException('Product not found');
+      rest.product = productId;
+    }
+    if (sizeId) {
+      if (!(await this.sizes.exists({ _id: sizeId })))
+        throw new NotFoundException('Size not found');
+      rest.size = sizeId;
+    }
+    return rest;
+  }
   async create(dto: CreateProductVariantDto) {
-    const product = await this.productsRepo.findOne({
-      where: { id: dto.productId },
-    });
-
-    if (!product) {
-      throw new NotFoundException(`Product with id ${dto.productId} not found`);
-    }
-
-    const size = await this.sizesRepo.findOne({
-      where: { id: dto.sizeId },
-    });
-
-    if (!size) {
-      throw new NotFoundException(`Size with id ${dto.sizeId} not found`);
-    }
-
-    const existing = await this.variantsRepo.findOne({
-      where: {
-        product: { id: dto.productId },
-        size: { id: dto.sizeId },
-      },
-      relations: ['product', 'size'],
-    });
-
-    if (existing) {
-      throw new BadRequestException(
-        'This variant already exists for the selected product and size',
-      );
-    }
-
-    const variant = this.variantsRepo.create({
-      product,
-      size,
-      stockQuantity: dto.stockQuantity,
-      variantPrice: dto.variantPrice ?? null,
-    });
-
-    const saved = await this.variantsRepo.save(variant);
-
-    return {
-      message: 'Product variant created successfully',
-      data: saved,
-    };
+    return { data: await this.variants.create(await this.payload(dto)) };
   }
-
   async findAll() {
-    const variants = await this.variantsRepo.find({
-      relations: ['product', 'product.category', 'size'],
-      order: { id: 'DESC' },
-    });
-
+    const records = await this.variants
+      .find({ isActive: true })
+      .populate({
+        path: 'product',
+        match: { isActive: true },
+        populate: { path: 'category' },
+      })
+      .populate('size');
+    const data = records.filter((variant) => Boolean(variant.product));
+    return { data, count: data.length };
+  }
+  async findOne(id: string) {
+    const data = await this.variants
+      .findOne({ _id: id, isActive: true })
+      .populate({
+        path: 'product',
+        match: { isActive: true },
+        populate: { path: 'category' },
+      })
+      .populate('size');
+    if (!data || !data.product)
+      throw new NotFoundException('Variant not found');
+    return { data };
+  }
+  async findByProduct(product: string) {
+    if (!(await this.products.exists({ _id: product, isActive: true })))
+      throw new NotFoundException('Product not found');
+    const data = await this.variants
+      .find({ product, isActive: true })
+      .populate({ path: 'product', populate: { path: 'category' } })
+      .populate('size');
+    return { data, count: data.length };
+  }
+  async update(id: string, dto: UpdateProductVariantDto) {
+    await this.findOne(id);
     return {
-      message: 'Product variants fetched successfully',
-      count: variants.length,
-      data: variants,
+      data: await this.variants.findByIdAndUpdate(
+        id,
+        { $set: await this.payload(dto) },
+        { new: true, runValidators: true },
+      ),
     };
   }
-
-  async findOne(id: number) {
-    const variant = await this.variantsRepo.findOne({
-      where: { id },
-      relations: ['product', 'product.category', 'size'],
-    });
-
-    if (!variant) {
-      throw new NotFoundException(`Product variant with id ${id} not found`);
-    }
-
-    return {
-      message: 'Product variant fetched successfully',
-      data: variant,
-    };
-  }
-
-  async findByProduct(productId: number) {
-    const variants = await this.variantsRepo.find({
-      where: { product: { id: productId } },
-      relations: ['product', 'size'],
-      order: { id: 'ASC' },
-    });
-
-    return {
-      message: 'Product variants fetched successfully',
-      count: variants.length,
-      data: variants,
-    };
-  }
-
-  async update(id: number, dto: UpdateProductVariantDto) {
-    const variant = await this.variantsRepo.findOne({
-      where: { id },
-      relations: ['product', 'size'],
-    });
-
-    if (!variant) {
-      throw new NotFoundException(`Product variant with id ${id} not found`);
-    }
-
-    if (dto.productId !== undefined) {
-      const product = await this.productsRepo.findOne({
-        where: { id: dto.productId },
-      });
-
-      if (!product) {
-        throw new NotFoundException(
-          `Product with id ${dto.productId} not found`,
-        );
-      }
-
-      variant.product = product;
-    }
-
-    if (dto.sizeId !== undefined) {
-      const size = await this.sizesRepo.findOne({
-        where: { id: dto.sizeId },
-      });
-
-      if (!size) {
-        throw new NotFoundException(`Size with id ${dto.sizeId} not found`);
-      }
-
-      variant.size = size;
-    }
-
-    if (dto.productId !== undefined || dto.sizeId !== undefined) {
-      const duplicate = await this.variantsRepo.findOne({
-        where: {
-          product: { id: variant.product.id },
-          size: { id: variant.size.id },
-        },
-        relations: ['product', 'size'],
-      });
-
-      if (duplicate && duplicate.id !== id) {
-        throw new BadRequestException(
-          'Another variant already exists for this product and size',
-        );
-      }
-    }
-
-    if (dto.stockQuantity !== undefined) {
-      variant.stockQuantity = dto.stockQuantity;
-    }
-
-    if (dto.variantPrice !== undefined) {
-      variant.variantPrice = dto.variantPrice;
-    }
-
-    const updated = await this.variantsRepo.save(variant);
-
-    return {
-      message: 'Product variant updated successfully',
-      data: updated,
-    };
-  }
-
-  async remove(id: number) {
-    const variant = await this.variantsRepo.findOne({
-      where: { id },
-    });
-
-    if (!variant) {
-      throw new NotFoundException(`Product variant with id ${id} not found`);
-    }
-
-    await this.variantsRepo.remove(variant);
-
-    return {
-      message: 'Product variant deleted successfully',
-      id,
-    };
+  async remove(id: string) {
+    await this.findOne(id);
+    await this.variants.findByIdAndUpdate(id, { isActive: false });
+    return { message: 'Variant archived', id };
   }
 }

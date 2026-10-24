@@ -1,6 +1,6 @@
 import { UserRole } from '../../common/enums/user-role.enum';
 
 export type CurrentUser = {
-  id: number;
+  id: string;
   role: UserRole;
 };

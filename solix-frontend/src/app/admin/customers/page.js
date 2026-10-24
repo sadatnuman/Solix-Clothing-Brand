@@ -1,91 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import api from "../../lib/api";
-import { getAuthConfig, getToken, removeToken } from "../../lib/auth";
+import { useEffect, useMemo, useState } from "react";
+import api, { errorMessage } from "../../lib/api";
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState("staff");
+  const [query, setQuery] = useState("");
+  const [passwords, setPasswords] = useState({});
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const load = () => Promise.all([api.get("/users/customers"), api.get("/auth/me")]).then(([users, me]) => { setCustomers(users.data.data || []); setRole(me.data.data.role); }).catch((requestError) => setError(errorMessage(requestError)));
+  useEffect(() => { load(); }, []);
+  const visible = useMemo(() => customers.filter((customer) => `${customer.fullName} ${customer.email} ${customer.phone || ""}`.toLowerCase().includes(query.toLowerCase())), [customers, query]);
 
-  const router = useRouter();
+  async function setStatus(customer) {
+    try { await api.patch(`/users/${customer.id}/status`, { isActive: !customer.isActive }); setMessage(`${customer.fullName} is now ${customer.isActive ? "paused" : "active"}.`); load(); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+  }
+  async function reset(customer) {
+    const temporaryPassword = passwords[customer.id] || "";
+    if (temporaryPassword.length < 8) { setError("Temporary password must contain at least 8 characters."); return; }
+    try { await api.patch(`/users/${customer.id}/reset-password`, { temporaryPassword, mustChangePassword: true }); setPasswords({ ...passwords, [customer.id]: "" }); setMessage(`${customer.fullName} must change the temporary password at next login.`); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+  }
 
-  useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const fetchCustomers = async () => {
-      try {
-        const response = await api.get("/users/customers", getAuthConfig());
-        setCustomers(response.data.data || []);
-      } catch (err) {
-        const status = err.response?.status;
-        const message = err.response?.data?.message;
-
-        if (status === 401) {
-          removeToken();
-          router.push("/login");
-          return;
-        }
-
-        if (status === 403) {
-          setError("Admin access only.");
-        } else if (Array.isArray(message)) {
-          setError(message[0]);
-        } else {
-          setError(message || "Failed to load customers.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCustomers();
-  }, [router]);
-
-  return (
-    <main className="w-full max-w-7xl mx-auto px-4 py-6">
-      <div className="flex flex-wrap gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => router.push("/admin")}
-          className="rounded-md border bg-white px-3 py-2 text-sm"
-        >
-          Back To Admin
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.push("/profile")}
-          className="rounded-md border bg-white px-3 py-2 text-sm"
-        >
-          My Profile
-        </button>
-      </div>
-
-      <h1 className="text-2xl font-semibold mb-6">Customers</h1>
-
-      {loading && <p>Loading customers...</p>}
-      {error && <p className="text-red-600">{error}</p>}
-      {!loading && !error && customers.length === 0 && <p>No customers found.</p>}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {customers.map((customer) => (
-          <div key={customer.id} className="border rounded-lg bg-white p-4">
-            <p className="text-sm"><span className="font-medium">Name:</span> {customer.fullName}</p>
-            <p className="text-sm"><span className="font-medium">Email:</span> {customer.email}</p>
-            <p className="text-sm"><span className="font-medium">Phone:</span> {customer.phone}</p>
-            <p className="text-sm"><span className="font-medium">Address:</span> {customer.address}</p>
-            <p className="text-sm"><span className="font-medium">Active:</span> {customer.isActive ? "Yes" : "No"}</p>
-          </div>
-        ))}
-      </div>
-    </main>
-  );
+  return <main className="studio-page">
+    <div className="studio-heading"><div><span className="eyebrow">CUSTOMER DIRECTORY</span><h1>Customers.</h1></div><span>{customers.length} accounts</span></div>
+    <div className="admin-filters"><label><span>Search</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, email or phone"/></label></div>
+    {error && <p className="status-note error-note" role="alert">{error}</p>}{message && <p className="status-note" role="status">{message}</p>}
+    {!visible.length && !error && <div className="empty-state">No customers match this view.</div>}
+    <div className="admin-card-list">{visible.map((customer) => <article className="admin-record" key={customer.id}>
+      <div className="admin-record-head"><div><span className="eyebrow">CUSTOMER</span><h2>{customer.fullName}</h2><p>{customer.email}</p></div><span className={`status-pill ${customer.isActive ? "verified" : "cancelled"}`}>{customer.isActive ? "Active" : "Paused"}</span></div>
+      <div className="admin-record-grid"><p><small>Phone</small>{customer.phone || "Not added"}</p><p><small>Address</small>{customer.address || "Not added"}</p><p><small>Joined</small>{new Date(customer.createdAt).toLocaleDateString("en-GB")}</p></div>
+      {role === "admin" && <div className="admin-record-actions"><button onClick={() => setStatus(customer)}>{customer.isActive ? "Pause account" : "Restore account"}</button><input type="password" minLength={8} aria-label={`Temporary password for ${customer.fullName}`} placeholder="Temporary password" value={passwords[customer.id] || ""} onChange={(event) => setPasswords({ ...passwords, [customer.id]: event.target.value })}/><button onClick={() => reset(customer)}>Set temporary password</button></div>}
+    </article>)}</div>
+  </main>;
 }

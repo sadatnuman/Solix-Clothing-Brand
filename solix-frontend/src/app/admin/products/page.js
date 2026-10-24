@@ -47,8 +47,9 @@ export default function AdminProductsPage() {
       try {
         const profileResponse = await api.get("/users/profile", getAuthConfig());
 
-        if (profileResponse.data.data.role !== "admin") {
-          setError("Admin access only.");
+        const profile = profileResponse.data.data;
+        if (profile.role === "staff" && !profile.permissions?.includes("catalog")) {
+          setError("Catalog permission is required.");
           setLoading(false);
           return;
         }
@@ -120,7 +121,7 @@ export default function AdminProductsPage() {
 
     try {
       const payload = {
-        categoryId: Number(formData.categoryId),
+        categoryId: formData.categoryId,
         name: formData.name,
         description: formData.description || undefined,
         basePrice: Number(formData.basePrice),
@@ -150,12 +151,13 @@ export default function AdminProductsPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Archive this product? It will leave the storefront, while existing order history stays intact.")) return;
     setError("");
     setMessage("");
 
     try {
       await api.delete(`/products/${id}`, getAuthConfig());
-      setMessage("Product deleted successfully.");
+      setMessage("Product archived successfully.");
 
       if (editingId === id) {
         resetForm();
@@ -258,6 +260,7 @@ export default function AdminProductsPage() {
             <div>
               <label className="block text-sm mb-1">Category</label>
               <select
+                required
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleChange}
@@ -275,6 +278,7 @@ export default function AdminProductsPage() {
             <div>
               <label className="block text-sm mb-1">Name</label>
               <input
+                required
                 type="text"
                 name="name"
                 value={formData.name}
@@ -297,6 +301,8 @@ export default function AdminProductsPage() {
             <div>
               <label className="block text-sm mb-1">Base Price</label>
               <input
+                required
+                min="1"
                 type="number"
                 name="basePrice"
                 value={formData.basePrice}
@@ -408,7 +414,7 @@ export default function AdminProductsPage() {
 
                   <button
                     type="button"
-                    onClick={() => router.push(`/admin/products/${product.id}/variants`)}
+                    onClick={() => router.push(`/admin/variants?product=${product.id}`)}
                     className="rounded-md border bg-white px-3 py-2 text-sm"
                   >
                     View Variants
@@ -419,7 +425,7 @@ export default function AdminProductsPage() {
                     onClick={() => handleDelete(product.id)}
                     className="rounded-md border bg-white px-3 py-2 text-sm"
                   >
-                    Delete
+                    Archive
                   </button>
                 </div>
               </div>

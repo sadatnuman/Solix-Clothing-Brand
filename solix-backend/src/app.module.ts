@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
+import { DatabaseModule } from './database/database.module';
 import { CartModule } from './cart/cart.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -9,9 +10,13 @@ import { SizesModule } from './sizes/sizes.module';
 import { ProductsModule } from './products/products.module';
 import { ProductVariantsModule } from './product-variants/product-variants.module';
 import { PaymentsModule } from './payments/payments.module';
-import { MailModule } from './mail/mail.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
+import { AppController } from './app.controller';
+import { CommerceModule } from './commerce/commerce.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -19,31 +24,16 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
 
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
+    MongooseModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const dbHost = configService.get<string>('DB_HOST') ?? 'localhost';
-        const dbPort = Number(configService.get<string>('DB_PORT') ?? 5432);
-        const dbUsername =
-          configService.get<string>('DB_USERNAME') ?? 'postgres';
-        const dbPassword = configService.get<string>('DB_PASSWORD') ?? 'root';
-        const dbName = configService.get<string>('DB_NAME') ?? 'solix_db';
-
-        return {
-          type: 'postgres' as const,
-          host: dbHost,
-          port: dbPort,
-          username: dbUsername,
-          password: dbPassword,
-          database: dbName,
-          autoLoadEntities: true,
-          synchronize: configService.get<string>('NODE_ENV') !== 'production',
-        };
-      },
+      useFactory: (config: ConfigService) => ({
+        uri: config.getOrThrow<string>('MONGODB_URI'),
+        serverSelectionTimeoutMS: 10000,
+      }),
     }),
-
+    DatabaseModule,
     AuthModule,
     UsersModule,
     CategoriesModule,
@@ -54,7 +44,9 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
     OrdersModule,
     PaymentsModule,
     AdminDashboardModule,
-    MailModule,
+    CommerceModule,
   ],
+  controllers: [AppController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

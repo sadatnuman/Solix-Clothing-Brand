@@ -2,173 +2,108 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import api from "../../../lib/api";
-import { getAuthConfig, getToken, removeToken } from "../../../lib/auth";
+import Link from "next/link";
+import api, { errorMessage, money } from "../../../lib/api";
+import { getAuthConfig } from "../../../lib/auth";
 
-export default function CreatePaymentPage() {
-  const [order, setOrder] = useState(null);
-  const [formData, setFormData] = useState({
-    transactionRef: "",
-  });
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  const params = useParams();
+export default function SendMoney() {
+  const { orderId } = useParams();
   const router = useRouter();
+  const [order, setOrder] = useState(null);
+  const [methods, setMethods] = useState([]);
+  const [transactionRef, setTransactionRef] = useState("");
+  const [lastFour, setLastFour] = useState("");
+  const [proof, setProof] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const fetchOrder = async () => {
-      try {
-        const response = await api.get(`/orders/${params.orderId}`, getAuthConfig());
-        setOrder(response.data.data);
-      } catch (err) {
-        const status = err.response?.status;
-        const message = err.response?.data?.message;
-
-        if (status === 401) {
-          removeToken();
-          router.push("/login");
-          return;
+    let active = true;
+    Promise.all([
+      api.get(`/orders/${orderId}`, getAuthConfig()),
+      api.get("/store/config"),
+    ])
+      .then(([orderResponse, configResponse]) => {
+        if (active) {
+          setOrder(orderResponse.data.data);
+          setMethods(configResponse.data.data.paymentMethods);
         }
-
-        if (Array.isArray(message)) {
-          setError(message[0]);
-        } else {
-          setError(message || "Failed to load order.");
-        }
-      } finally {
-        setLoading(false);
-      }
+      })
+      .catch((requestError) => {
+        if (requestError.response?.status === 401) router.replace("/login");
+        else if (active) setError(errorMessage(requestError));
+      });
+    return () => {
+      active = false;
     };
+  }, [orderId, router]);
 
-    if (params.orderId) {
-      fetchOrder();
-    }
-  }, [params.orderId, router]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
+  async function submit(event) {
     event.preventDefault();
-
-    if (!order) {
-      return;
-    }
-
-    setSubmitting(true);
+    setBusy(true);
     setError("");
-
     try {
-      await api.post(
+      const response = await api.post(
         "/payments",
         {
-          orderId: Number(params.orderId),
+          orderId,
           method: order.paymentMethod,
-          transactionRef: formData.transactionRef || undefined,
+          transactionRef: transactionRef.trim(),
+          senderLastFour: lastFour,
         },
-        getAuthConfig()
+        getAuthConfig(),
       );
-
-      router.push(`/payments/order/${params.orderId}`);
-    } catch (err) {
-      const message = err.response?.data?.message;
-
-      if (Array.isArray(message)) {
-        setError(message[0]);
-      } else {
-        setError(message || "Failed to create payment record.");
+      if (proof) {
+        const body = new FormData();
+        body.append("file", proof);
+        await api.post(
+          `/payments/${response.data.data.id}/proof`,
+          body,
+          getAuthConfig(),
+        );
       }
+      router.push(`/payments/order/${orderId}`);
+    } catch (requestError) {
+      setError(errorMessage(requestError));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  };
+  }
+
+  const method = methods.find((entry) => entry.id === order?.paymentMethod);
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <div className="flex gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => router.push(`/orders/${params.orderId}`)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          Back To Order
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.push(`/payments/order/${params.orderId}`)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          Payment Details
-        </button>
-      </div>
-
-      <h1 className="text-2xl font-semibold mb-6">Create Payment Record</h1>
-
-      {loading && <p>Loading order...</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-
-      {!loading && !error && order && (
-        <>
-          <div className="border rounded p-4 mb-6 space-y-2">
-            <p className="text-sm">
-              <span className="font-medium">Order Number:</span> {order.orderNumber}
-            </p>
-
-            <p className="text-sm">
-              <span className="font-medium">Total Amount:</span> Tk {order.totalAmount}
-            </p>
-
-            <p className="text-sm">
-              <span className="font-medium">Payment Method:</span> {order.paymentMethod}
-            </p>
-
-            <p className="text-sm">
-              <span className="font-medium">Current Payment Status:</span>{" "}
-              {order.paymentStatus}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="border rounded p-4 space-y-4">
-            <div>
-              <label className="block text-sm mb-1">Transaction Reference</label>
-              <input
-                type="text"
-                name="transactionRef"
-                value={formData.transactionRef}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-              <p className="text-xs mt-1">
-                You can leave this empty for cash on delivery.
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="border rounded px-3 py-2 text-sm"
-            >
-              {submitting ? "Creating..." : "Create Payment Record"}
-            </button>
-          </form>
-        </>
-      )}
+    <main className="section" style={{ maxWidth: 750 }}>
+      <Link href={`/orders/${orderId}`} className="text-link">
+        ← Back to order
+      </Link>
+      <h1 className="page-title">Send Money details.</h1>
+      {error && <p className="status-note error-note" role="alert">{error}</p>}
+      {!order && !error && <p role="status">Loading your order…</p>}
+      {order && (order.paymentMethod === "cash_on_delivery" ? (
+        <div className="status-note">Your order uses cash on delivery. Pay when it arrives.</div>
+      ) : order.paymentStatus === "verified" ? (
+        <div className="status-note">Your payment is already verified.</div>
+      ) : order.orderStatus === "cancelled" ? (
+        <div className="status-note">This order was cancelled.</div>
+      ) : <>
+        <div className="summary-box send-money-card">
+          <span className="eyebrow">{order.orderNumber}</span>
+          <h2>Send {money(order.grandTotal ?? order.totalAmount)} via {method?.label || order.paymentMethod}</h2>
+          {method?.enabled ? <ol className="payment-steps">
+            <li>Open your {method.label} app.</li>
+            <li>Choose <strong>Send Money</strong>.</li>
+            <li>Send the exact order total to <strong>{method.number}</strong>.</li>
+            <li>Copy the transaction ID and submit it below.</li>
+          </ol> : <p>The recipient number is currently unavailable. Please do not send money yet.</p>}
+        </div>
+        <form className="form-stack account-form" onSubmit={submit}>
+          <label>Transaction ID<input required minLength={4} maxLength={100} value={transactionRef} onChange={(event) => setTransactionRef(event.target.value)} placeholder="Example: 9AB12CD34" /></label>
+          <label>Sender number last 4 digits<input required pattern="[0-9]{4}" maxLength={4} inputMode="numeric" value={lastFour} onChange={(event) => setLastFour(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="1234" /></label>
+          <label>Payment screenshot<span className="optional-copy">Optional · JPEG, PNG or WebP · max 3 MB</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setProof(event.target.files?.[0] || null)} /></label>
+          <button className="button dark" disabled={busy || !method?.enabled}>{busy ? "Submitting…" : "Submit for verification ↗"}</button>
+        </form>
+      </>)}
     </main>
   );
 }

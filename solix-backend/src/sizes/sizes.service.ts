@@ -1,83 +1,47 @@
+import { UpdateSizeDto } from './dto/update-size.dto';
+import { CreateSizeDto } from './dto/create-size.dto';
+import { SizeRecord, VariantRecord } from '../database/types';
 import {
-  BadRequestException,
   Injectable,
+  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Size } from './entities/size.entity';
-import { CreateSizeDto } from './dto/create-size.dto';
-import { UpdateSizeDto } from './dto/update-size.dto';
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 @Injectable()
 export class SizesService {
   constructor(
-    @InjectRepository(Size)
-    private readonly sizesRepo: Repository<Size>,
+    @InjectModel('Size') private readonly records: Model<SizeRecord>,
+    @InjectModel('ProductVariant')
+    private readonly references: Model<VariantRecord>,
   ) {}
-
   async create(dto: CreateSizeDto) {
-    const existing = await this.sizesRepo.findOne({
-      where: { name: dto.name },
-    });
-
-    if (existing) {
-      throw new BadRequestException('Size already exists');
-    }
-
-    const size = this.sizesRepo.create(dto);
-    const saved = await this.sizesRepo.save(size);
-
-    return {
-      message: 'Size created successfully',
-      data: saved,
-    };
+    return { data: await this.records.create(dto) };
   }
-
   async findAll() {
-    const sizes = await this.sizesRepo.find({
-      order: { createdAt: 'ASC' },
-    });
-
+    const data = await this.records.find().sort({ createdAt: 1 });
+    return { data, count: data.length };
+  }
+  async findOne(id: string) {
+    const data = await this.records.findById(id);
+    if (!data) throw new NotFoundException('Size not found');
+    return { data };
+  }
+  async update(id: string, dto: UpdateSizeDto) {
+    await this.findOne(id);
     return {
-      message: 'Sizes fetched successfully',
-      count: sizes.length,
-      data: sizes,
+      data: await this.records.findByIdAndUpdate(
+        id,
+        { $set: dto },
+        { new: true, runValidators: true },
+      ),
     };
   }
-
-  async findOne(id: number) {
-    const size = await this.sizesRepo.findOne({ where: { id } });
-    if (!size) {
-      throw new NotFoundException(`Size with id ${id} not found`);
-    }
-    return {
-      message: 'Size fetched successfully',
-      data: size,
-    };
-  }
-
-  async update(id: number, dto: UpdateSizeDto) {
-    const size = await this.sizesRepo.findOne({ where: { id } });
-    if (!size) {
-      throw new NotFoundException(`Size with id ${id} not found`);
-    }
-    Object.assign(size, dto);
-    const updated = await this.sizesRepo.save(size);
-    return {
-      message: 'Size updated successfully',
-      data: updated,
-    };
-  }
-
-  async remove(id: number) {
-    const size = await this.sizesRepo.findOne({ where: { id } });
-    if (!size) {
-      throw new NotFoundException(`Size with id ${id} not found`);
-    }
-    await this.sizesRepo.remove(size);
-    return {
-      message: 'Size deleted successfully',
-    };
+  async remove(id: string) {
+    await this.findOne(id);
+    if (await this.references.exists({ size: id }))
+      throw new BadRequestException('This size is in use');
+    await this.records.findByIdAndDelete(id);
+    return { message: 'Size deleted', id };
   }
 }

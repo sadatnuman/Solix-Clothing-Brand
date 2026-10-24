@@ -1,187 +1,194 @@
+import { UserRole } from '../common/enums/user-role.enum';
+import { PaymentMethod } from '../common/enums/payment-method.enum';
+import { PaymentStatus } from '../common/enums/payment-status.enum';
+import { OrderStatus } from '../common/enums/order-status.enum';
+import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { User } from '../users/entities/user.entity';
+import {
+  NotificationRecord,
+  OrderRecord,
+  PaymentRecord,
+} from '../database/types';
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { Payment } from './entities/payment.entity';
-import { Order } from '../orders/entities/order.entity';
-
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
-
-import { PaymentStatus } from '../common/enums/payment-status.enum';
-import { UserRole } from '../common/enums/user-role.enum';
-import { User } from '../users/entities/user.entity';
-
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 @Injectable()
 export class PaymentsService {
   constructor(
-    @InjectRepository(Payment)
-    private readonly paymentsRepo: Repository<Payment>,
-    @InjectRepository(Order)
-    private readonly ordersRepo: Repository<Order>,
+    @InjectModel('Payment') private readonly payments: Model<PaymentRecord>,
+    @InjectModel('Order') private readonly orders: Model<OrderRecord>,
+    @InjectModel('Notification')
+    private readonly notifications: Model<NotificationRecord>,
+    @InjectConnection() private readonly db: Connection,
   ) {}
-
-  async create(dto: CreatePaymentDto, currentUser: User) {
-    const order = await this.ordersRepo.findOne({
-      where: { id: dto.orderId },
-      relations: ['user'],
-    });
-
-    if (!order) {
-      throw new NotFoundException(`Order with id ${dto.orderId} not found`);
-    }
-
+  private authorize(order: OrderRecord, user: User) {
     if (
-      currentUser.role !== UserRole.ADMIN &&
-      order.user.id !== currentUser.id
-    ) {
-      throw new ForbiddenException(
-        'You can create payment only for your own order',
-      );
-    }
-
-    const existingPayment = await this.paymentsRepo.findOne({
-      where: { order: { id: dto.orderId } },
-      relations: ['order'],
-    });
-
-    if (existingPayment) {
-      throw new BadRequestException(
-        'Payment record already exists for this order',
-      );
-    }
-
-    const payment = this.paymentsRepo.create({
-      order,
-      method: dto.method,
-      status: PaymentStatus.PENDING,
-      transactionRef: dto.transactionRef ?? null,
-      paidAt: null,
-    });
-
-    const saved = await this.paymentsRepo.save(payment);
-
-    return {
-      message: 'Payment record created successfully',
-      data: saved,
-    };
+      ![UserRole.ADMIN, UserRole.STAFF].includes(user.role) &&
+      String(order.user?._id ?? order.user) !== user.id
+    )
+      throw new ForbiddenException();
   }
-
+  async create(dto: CreatePaymentDto, user: User) {
+    let result: import('mongoose').HydratedDocument<PaymentRecord> | null =
+      null;
+    await this.db.transaction(async (session) => {
+      const order = await this.orders.findById(dto.orderId).session(session);
+      if (!order) throw new NotFoundException('Order not found');
+      this.authorize(order, user);
+      if (
+        order.orderStatus === OrderStatus.CANCELLED ||
+        order.paymentStatus === PaymentStatus.VERIFIED
+      )
+        throw new BadRequestException('Payment cannot be changed');
+      if (dto.method !== order.paymentMethod)
+        throw new BadRequestException('Payment method must match the order');
+      const transactionRef = dto.transactionRef?.trim();
+      if (dto.method !== PaymentMethod.CASH_ON_DELIVERY && !transactionRef)
+        throw new BadRequestException('Transaction reference is required');
+      if (dto.method === PaymentMethod.CASH_ON_DELIVERY && transactionRef)
+        throw new BadRequestException(
+          'COD does not require a transaction reference',
+        );
+      result = await this.payments.findOneAndUpdate(
+        { order: order._id },
+        {
+          $set: {
+            method: dto.method,
+            status:
+              dto.method === PaymentMethod.CASH_ON_DELIVERY
+                ? 'pending'
+                : 'submitted',
+            submittedAt: transactionRef ? new Date() : undefined,
+            senderLastFour: dto.senderLastFour,
+            ...(transactionRef ? { transactionRef } : {}),
+          },
+        },
+        { new: true, upsert: true, runValidators: true, session },
+      );
+      order.paymentStatus =
+        dto.method === PaymentMethod.CASH_ON_DELIVERY
+          ? PaymentStatus.PENDING
+          : PaymentStatus.SUBMITTED;
+      if (dto.method !== PaymentMethod.CASH_ON_DELIVERY)
+        order.orderStatus = OrderStatus.PAYMENT_REVIEW;
+      await order.save({ session });
+    });
+    await this.notifications.create({
+      user: user.id,
+      type: 'payment',
+      title: 'Payment submitted',
+      message: 'Your transaction is waiting for verification.',
+      href: `/orders/${dto.orderId}`,
+    });
+    return { message: 'Payment submitted for verification', data: result };
+  }
   async findAll() {
-    const payments = await this.paymentsRepo.find({
-      order: { createdAt: 'DESC' },
-    });
-
-    return {
-      message: 'Payments fetched successfully',
-      count: payments.length,
-      data: payments,
-    };
+    const data = await this.payments
+      .find()
+      .populate('order')
+      .sort({ createdAt: -1 });
+    return { data, count: data.length };
   }
-
-  async findOne(id: number, currentUser: User) {
-    const payment = await this.paymentsRepo.findOne({
-      where: { id },
-      relations: ['order', 'order.user'],
-    });
-
-    if (!payment) {
-      throw new NotFoundException(`Payment with id ${id} not found`);
-    }
-
+  async findOne(id: string, user: User) {
+    const data = await this.payments
+      .findById(id)
+      .populate({ path: 'order', populate: { path: 'user' } });
+    if (!data) throw new NotFoundException('Payment not found');
+    this.authorize(data.order, user);
+    return { data };
+  }
+  async findByOrder(order: string, user: User) {
+    const data = await this.payments
+      .findOne({ order })
+      .populate({ path: 'order', populate: { path: 'user' } });
+    if (!data) throw new NotFoundException('Payment not found');
+    this.authorize(data.order, user);
+    return { data };
+  }
+  async attachProof(id: string, proofImageUrl: string, user: User) {
+    const payment = await this.payments.findById(id).populate('order');
+    if (!payment) throw new NotFoundException('Payment not found');
+    this.authorize(payment.order, user);
     if (
-      currentUser.role !== UserRole.ADMIN &&
-      payment.order.user.id !== currentUser.id
-    ) {
-      throw new ForbiddenException('You can view only your own payment');
-    }
-
-    return {
-      message: 'Payment fetched successfully',
-      data: payment,
-    };
+      [PaymentStatus.VERIFIED, PaymentStatus.REFUNDED].includes(payment.status)
+    )
+      throw new BadRequestException('Payment proof can no longer be changed');
+    payment.proofImageUrl = proofImageUrl;
+    await payment.save();
+    return { message: 'Payment proof attached', data: payment };
   }
-
-  async findByOrder(orderId: number, currentUser: User) {
-    const payment = await this.paymentsRepo.findOne({
-      where: { order: { id: orderId } },
-      relations: ['order', 'order.user'],
+  async updateStatus(id: string, dto: UpdatePaymentStatusDto, user: User) {
+    await this.db.transaction(async (session) => {
+      const payment = await this.payments.findById(id).session(session);
+      if (!payment) throw new NotFoundException('Payment not found');
+      const order = await this.orders.findById(payment.order).session(session);
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.orderStatus === OrderStatus.CANCELLED)
+        throw new BadRequestException('Order is cancelled');
+      if (
+        payment.status === PaymentStatus.VERIFIED &&
+        ![PaymentStatus.VERIFIED, PaymentStatus.REFUNDED].includes(dto.status)
+      )
+        throw new BadRequestException(
+          'Verified payments cannot be reversed here',
+        );
+      if (dto.transactionRef?.trim())
+        payment.transactionRef = dto.transactionRef.trim();
+      if (
+        dto.status === PaymentStatus.VERIFIED &&
+        payment.method !== PaymentMethod.CASH_ON_DELIVERY &&
+        !payment.transactionRef
+      )
+        throw new BadRequestException('Transaction reference is required');
+      payment.status = dto.status;
+      payment.verifiedBy =
+        dto.status === PaymentStatus.VERIFIED
+          ? new Types.ObjectId(user.id)
+          : payment.verifiedBy;
+      payment.rejectionReason = dto.rejectionReason;
+      payment.paidAt =
+        dto.status === PaymentStatus.VERIFIED
+          ? (payment.paidAt ?? new Date())
+          : null;
+      order.paymentStatus = dto.status;
+      if (
+        dto.status === PaymentStatus.VERIFIED &&
+        order.orderStatus === OrderStatus.PAYMENT_REVIEW
+      )
+        order.orderStatus = OrderStatus.CONFIRMED;
+      order.timeline.push({
+        status: `payment_${dto.status}`,
+        note: dto.rejectionReason,
+        at: new Date(),
+      });
+      await order.save({ session });
+      await payment.save({ session });
     });
-
-    if (!payment) {
-      throw new NotFoundException(`Payment for order id ${orderId} not found`);
-    }
-
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      payment.order.user.id !== currentUser.id
-    ) {
-      throw new ForbiddenException('You can view only your own payment');
-    }
-
-    return {
-      message: 'Payment fetched successfully',
-      data: payment,
-    };
+    const data = await this.payments.findById(id).populate('order');
+    if (data)
+      await this.notifications.create({
+        user: data.order.user,
+        type: 'payment',
+        title: `Payment ${dto.status}`,
+        message:
+          dto.status === PaymentStatus.VERIFIED
+            ? 'Your payment was verified.'
+            : `Your payment is ${dto.status}.`,
+        href: `/orders/${data.order.id}`,
+      });
+    return { data };
   }
-
-  async updateStatus(id: number, dto: UpdatePaymentStatusDto) {
-    const payment = await this.paymentsRepo.findOne({
-      where: { id },
-      relations: ['order'],
-    });
-
-    if (!payment) {
-      throw new NotFoundException(`Payment with id ${id} not found`);
-    }
-
-    payment.status = dto.status;
-
-    if (dto.transactionRef !== undefined) {
-      payment.transactionRef = dto.transactionRef;
-    }
-
-    if (dto.status === PaymentStatus.PAID) {
-      payment.paidAt = new Date();
-      payment.order.paymentStatus = PaymentStatus.PAID;
-    }
-
-    if (dto.status === PaymentStatus.FAILED) {
-      payment.order.paymentStatus = PaymentStatus.FAILED;
-    }
-
-    if (dto.status === PaymentStatus.PENDING) {
-      payment.order.paymentStatus = PaymentStatus.PENDING;
-    }
-
-    await this.ordersRepo.save(payment.order);
-    const updated = await this.paymentsRepo.save(payment);
-
-    return {
-      message: 'Payment status updated successfully',
-      data: updated,
-    };
-  }
-
-  async remove(id: number) {
-    const payment = await this.paymentsRepo.findOne({
-      where: { id },
-    });
-
-    if (!payment) {
-      throw new NotFoundException(`Payment with id ${id} not found`);
-    }
-
-    await this.paymentsRepo.remove(payment);
-
-    return {
-      message: 'Payment deleted successfully',
-      id,
-    };
+  async remove(id: string) {
+    if (!(await this.payments.exists({ _id: id })))
+      throw new NotFoundException('Payment not found');
+    throw new BadRequestException(
+      'Payment records are retained for order history',
+    );
   }
 }

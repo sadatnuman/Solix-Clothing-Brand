@@ -1,70 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import api from "./lib/api";
-
-export default function Home() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const router = useRouter();
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await api.get("/products");
-        setProducts(response.data.data || []);
-      } catch {
-        setError("Failed to load products.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  return (
-    <main className="w-full max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold mb-2">All Products</h1>
-        <p className="text-sm text-slate-600">
-          Browse products from your NestJS backend.
-        </p>
-      </div>
-
-      {loading && <p>Loading products...</p>}
-      {error && <p className="text-red-600">{error}</p>}
-      {!loading && !error && products.length === 0 && <p>No products found.</p>}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <div key={product.id} className="border rounded-lg bg-white p-4">
-            <h2 className="text-lg font-medium mb-2">{product.name}</h2>
-            <p className="text-sm mb-1">Category: {product.category?.name || "N/A"}</p>
-            <p className="text-sm mb-1">Price: Tk {product.basePrice}</p>
-            <p className="text-sm mb-3">
-              Sizes:{" "}
-              {product.variants?.length
-                ? product.variants.map((variant) => variant.size?.name).join(", ")
-                : "No variants"}
-            </p>
-            <p className="text-sm text-slate-600 mb-4">
-              {product.description || "No description available."}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => router.push(`/products/${product.id}`)}
-              className="rounded-md border bg-white px-3 py-2 text-sm"
-            >
-              View Details
-            </button>
-          </div>
-        ))}
-      </div>
-    </main>
-  );
-}
+import Link from 'next/link';
+import Image from 'next/image';
+import Featured from './components/Featured';
+import Tilt from './components/Tilt';
+import RecentlyViewed from './components/RecentlyViewed';
+export const metadata={title:{absolute:'Solix Bangladesh | Premium Clothing, Panjabi & Watches'},description:'Shop Solix Bangladesh for premium Panjabi, modern clothing, women’s wear and watches with complimentary delivery, Cash on Delivery and manual Send Money.',alternates:{canonical:'/'},openGraph:{title:'Solix Bangladesh | Royal elegance, made wearable',description:'Premium Panjabi, modern essentials, women’s wear and watches from Rajbari, Bangladesh.',url:'/',images:[{url:'/images/solix-royal-logo.jpg',width:960,height:960,alt:'Solix Bangladesh crowned S logo'}]}};
+export default function Home(){return <main className="home"><section className="hero"><div className="hero-copy"><div className="eyebrow"><span className="tiny-cross">✳</span> THE ROYAL EDIT — BANGLADESH</div><h1>Not just worn.<br/><em>Lived in.</em></h1><p>Elevate your style with the timeless luxury of royal elegance.<br/>Meet considered pieces made for every part of your life.</p><Link href="/shop" className="button dark">Find your Solix <span>↗</span></Link><div className="hero-bottom"><span className="hero-index">01 / 03</span><span className="hero-line"/><span>ROYAL ELEGANCE. EVERYDAY EASE.</span></div></div><div className="hero-visual"><Image src="/images/campaign.jpg" alt="Friends in effortless everyday outfits on a city street" fill priority sizes="(max-width: 760px) 100vw, 55vw" className="hero-image"/><div className="image-grain"/><span className="hero-photo-label">OFF DUTY. ON YOUR TERMS.</span><div className="orbit-stamp" aria-hidden="true"><span>THE ROYAL</span><b>S</b><span>SOLIX · RAJBARI</span></div><Tilt className="floating-note"><span>THE NEW PERSPECTIVE</span><strong>Made for<br/>your everyday.</strong><Link href="/shop">Explore the edit ↗</Link></Tilt><div className="image-caption"><span>THE ART OF KEEPING IT SIMPLE</span><span>SOLIX BANGLADESH</span></div></div></section><div className="brand-strip"><span>ROYAL BY DESIGN</span><b>✳</b><span>PREMIUM PANJABI</span><b>✳</b><span>WATCHES FOR HIM & HER</span><b>✳</b><span>WINTER COLLECTION</span><b>✳</b><span>BAGGY TROUSERS</span></div><section className="section"><div className="section-heading"><div><span className="eyebrow">THE PIECES YOU COME BACK TO</span><h2>New in. Already you.</h2></div><Link className="text-link" href="/shop">Shop the collection ↗</Link></div><Featured /></section><section className="collection-grid section"><Link href="/shop?category=Panjabi" className="collection-card"><Image src="/images/catalog/royal-panjabi.png" alt="Solix Royal Ivory Panjabi" fill sizes="50vw"/><div><span className="eyebrow">01 — ROYAL ELEGANCE</span><h2>Premium Panjabi.</h2><span>Discover occasion wear ↗</span></div></Link><Link href="/shop?category=Watches" className="collection-card"><Image src="/images/catalog/royal-watch.png" alt="Solix Crown Dial Watch" fill sizes="50vw"/><div><span className="eyebrow">02 — THE FINISHING TOUCH</span><h2>Watches for everyone.</h2><span>Explore the collection ↗</span></div></Link></section><RecentlyViewed/><section id="story" className="story section"><div className="story-art royal-story-mark"><Image src="/images/solix-royal-logo.jpg" alt="Solix royal crowned S" width={300} height={300}/><span>BAHARPUR · RAJBARI<br/>BANGLADESH</span></div><div><span className="eyebrow">THE SOLIX POINT OF VIEW</span><h2>Royal elegance,<br/>made wearable.</h2><p>Solix brings premium Panjabi, modern essentials and considered accessories together for life in Bangladesh.</p><p>From Baharpur, Rajbari, we design for celebrations, everyday confidence and everything in between.</p><div className="story-links"><Link href="/pages/about" className="text-link">Meet Solix ↗</Link><Link href="/contact" className="text-link">Visit the Baharpur store ↗</Link></div></div></section><section className="service-strip"><div><span>01</span><h3>Considered choice</h3><p>Clear sizing, honest stock and detailed materials.</p></div><div><span>02</span><h3>A simpler checkout</h3><p>Cash on delivery or verified Send Money.</p></div><div><span>03</span><h3>Local support</h3><p>Website inbox plus our Rajbari store contact.</p></div></section></main>}

@@ -8,4 +8,8 @@ export class UpdatePaymentStatusDto {
   @IsOptional()
   @IsString()
   transactionRef?: string;
+
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
 }

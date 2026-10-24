@@ -1,71 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import api from "../lib/api";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import api, { errorMessage } from '../lib/api';
 
-export default function CategoriesPage() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const categoryImages = {
+  Panjabi: '/images/catalog/royal-panjabi.png',
+  'T-Shirts': '/images/catalog/navy-tee.png',
+  Shirts: '/images/catalog/oxford-shirt.png',
+  'Polo Shirts': '/images/catalog/knit-polo.png',
+  Denim: '/images/catalog/indigo-denim.png',
+  Jackets: '/images/catalog/bomber-jacket.png',
+  Trousers: '/images/catalog/chino-trouser.png',
+  Hoodies: '/images/catalog/cream-hoodie.png',
+  "Women's Wear": '/images/catalog/navy-dress.png',
+  Watches: '/images/catalog/royal-watch.png',
+  Essentials: '/images/essentials.jpg',
+  Layers: '/images/layers.jpg',
+  Knitwear: '/images/knit.jpg',
+};
 
-  const router = useRouter();
-
+export default function Categories() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await api.get("/categories");
-        setCategories(response.data.data || []);
-      } catch (err) {
-        setError("Failed to load categories.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
+    api
+      .get('/categories')
+      .then((response) => setData(response.data.data))
+      .catch((requestError) => setError(errorMessage(requestError)));
   }, []);
-
   return (
-    <main className="max-w-4xl mx-auto p-6">
-      <button
-        type="button"
-        onClick={() => router.push("/")}
-        className="border rounded px-3 py-2 text-sm mb-6"
-      >
-        Back
-      </button>
-
-      <h1 className="text-2xl font-semibold mb-2">Categories</h1>
-      <p className="text-sm text-gray-600 mb-6">
-        These categories are coming from the backend.
-      </p>
-
-      {loading && <p>Loading categories...</p>}
-      {error && <p className="text-red-600">{error}</p>}
-      {!loading && !error && categories.length === 0 && (
-        <p>No categories found.</p>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {categories.map((category) => (
-          <div key={category.id} className="border rounded p-4">
-            <h2 className="text-lg font-medium mb-2">{category.name}</h2>
-
-            <p className="text-sm text-gray-700 mb-4">
-              {category.description || "No description available."}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => router.push(`/categories/${category.id}`)}
-              className="border rounded px-3 py-2 text-sm"
-            >
-              View Products
-            </button>
-          </div>
+    <main className="section">
+      <span className="eyebrow">FIND YOUR EVERYDAY</span>
+      <h1 style={{ fontSize: 48, margin: '15px 0 35px' }}>A little of everything.</h1>
+      {error && <p className="status-note error-note" role="alert">{error}</p>}
+      {!data && !error && <p role="status">Loading collections…</p>}
+      <div className="collection-grid category-collection-grid" style={{ padding: 0 }}>
+        {data?.map((category) => (
+          <Link key={category.id} href={`/categories/${category.id}`} className="collection-card">
+            <Image
+              src={categoryImages[category.name] || '/images/essentials.jpg'}
+              alt={category.name}
+              fill
+              sizes="(max-width: 760px) 100vw, 50vw"
+            />
+            <div>
+              <span className="eyebrow">SOLIX COLLECTION</span>
+              <h2>{category.name}</h2>
+              <span>Explore the edit ↗</span>
+            </div>
+          </Link>
         ))}
       </div>
+      {data?.length === 0 && <p className="empty-state">New collections are coming soon.</p>}
     </main>
   );
 }

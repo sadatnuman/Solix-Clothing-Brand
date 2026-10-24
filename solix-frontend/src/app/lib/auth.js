@@ -1,35 +1,19 @@
-const TOKEN_KEY = "solix_access_token";
+const SESSION_KEY = "solix_signed_in";
 
-export function saveToken(token) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(TOKEN_KEY, token);
-  }
+export function saveToken() {
+  if (typeof window !== "undefined") localStorage.setItem(SESSION_KEY, "1");
 }
 
 export function getToken() {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem(TOKEN_KEY);
-  }
-
-  return null;
+  return typeof window !== "undefined" && localStorage.getItem(SESSION_KEY) === "1";
 }
 
 export function removeToken() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(TOKEN_KEY);
-  }
+  if (typeof window !== "undefined") localStorage.removeItem(SESSION_KEY);
 }
 
-export function getAuthConfig() {
-  const token = getToken();
+export function getAuthConfig() { return {}; }
 
-  if (!token) {
-    return {};
-  }
-
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
+export async function signOut(api) {
+  try { await api.post("/auth/logout"); } finally { removeToken(); }
 }

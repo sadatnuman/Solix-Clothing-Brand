@@ -9,6 +9,7 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 
 @Module({
   imports: [
@@ -19,8 +20,7 @@ import { RolesGuard } from './guards/roles.guard';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret:
-          configService.get<string>('JWT_SECRET') || 'solix_super_secret_key',
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
           expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ||
             '1d') as StringValue,
@@ -29,7 +29,13 @@ import { RolesGuard } from './guards/roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RolesGuard],
-  exports: [AuthService, JwtModule, PassportModule, RolesGuard],
+  providers: [AuthService, JwtStrategy, RolesGuard, PermissionsGuard],
+  exports: [
+    AuthService,
+    JwtModule,
+    PassportModule,
+    RolesGuard,
+    PermissionsGuard,
+  ],
 })
 export class AuthModule {}

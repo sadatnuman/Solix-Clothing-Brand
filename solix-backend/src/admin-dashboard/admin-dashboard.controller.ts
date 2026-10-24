@@ -7,7 +7,7 @@ import { UserRole } from '../common/enums/user-role.enum';
 
 @Controller('admin/dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.STAFF)
 export class AdminDashboardController {
   constructor(private readonly adminDashboardService: AdminDashboardService) {}
 

@@ -1,10 +1,10 @@
+import { ObjectIdPipe } from '../common/object-id.pipe';
 import {
   Body,
   Controller,
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -13,6 +13,7 @@ import {
 import { CartService } from './cart.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { MergeCartDto } from './dto/merge-cart.dto';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -33,17 +34,22 @@ export class CartController {
     return this.cartService.addItem(user.id, dto);
   }
 
+  @Post('merge')
+  merge(@GetUser() user: User, @Body() dto: MergeCartDto) {
+    return this.cartService.merge(user.id, dto.items);
+  }
+
   @Patch('items/:id')
   updateItem(
     @GetUser() user: User,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ObjectIdPipe) id: string,
     @Body() dto: UpdateCartItemDto,
   ) {
     return this.cartService.updateItem(user.id, id, dto);
   }
 
   @Delete('items/:id')
-  removeItem(@GetUser() user: User, @Param('id', ParseIntPipe) id: number) {
+  removeItem(@GetUser() user: User, @Param('id', ObjectIdPipe) id: string) {
     return this.cartService.removeItem(user.id, id);
   }
 

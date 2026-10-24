@@ -1,128 +1,127 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "../../lib/api";
-import { getAuthConfig, getToken, removeToken } from "../../lib/auth";
+import api, { errorMessage, money } from "../../lib/api";
+import { getAuthConfig, removeToken } from "../../lib/auth";
+
+const transitions = {
+  pending: ["pending", "confirmed", "cancelled"],
+  payment_review: ["payment_review", "confirmed", "cancelled"],
+  confirmed: ["confirmed", "processing", "cancelled"],
+  processing: ["processing", "packed", "cancelled"],
+  packed: ["packed", "shipped", "cancelled"],
+  shipped: ["shipped", "delivered"],
+  delivered: ["delivered"],
+  return_requested: ["return_requested", "returned"],
+  returned: ["returned"],
+  cancelled: ["cancelled"],
+};
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [statusInputs, setStatusInputs] = useState({});
+  const [trackingInputs, setTrackingInputs] = useState({});
+  const [filter, setFilter] = useState("all");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-
   const router = useRouter();
 
   const fetchOrders = async () => {
     const response = await api.get("/orders", getAuthConfig());
-    const orderData = response.data.data || [];
-
-    setOrders(orderData);
-
-    const initialStatuses = {};
-    orderData.forEach((order) => {
-      initialStatuses[order.id] = order.orderStatus;
-    });
-    setStatusInputs(initialStatuses);
+    const data = response.data.data || [];
+    setOrders(data);
+    setStatusInputs(Object.fromEntries(data.map((order) => [order.id, order.orderStatus])));
+    setTrackingInputs(Object.fromEntries(data.map((order) => [order.id, order.tracking || { carrier: "", trackingNumber: "", trackingUrl: "" }])));
   };
 
   useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const loadPage = async () => {
+    let active = true;
+    const load = async () => {
       try {
-        await fetchOrders();
-      } catch (err) {
-        const status = err.response?.status;
-        const responseMessage = err.response?.data?.message;
-
-        if (status === 401) {
-          removeToken();
-          router.push("/login");
-          return;
+        const response = await api.get("/orders", getAuthConfig());
+        const data = response.data.data || [];
+        if (active) {
+          setOrders(data);
+          setStatusInputs(Object.fromEntries(data.map((order) => [order.id, order.orderStatus])));
+          setTrackingInputs(Object.fromEntries(data.map((order) => [order.id, order.tracking || { carrier: "", trackingNumber: "", trackingUrl: "" }])));
         }
-
-        setError(Array.isArray(responseMessage) ? responseMessage[0] : responseMessage || "Failed to load orders.");
+      } catch (requestError) {
+        if (requestError.response?.status === 401) {
+          removeToken();
+          router.replace("/login?next=/admin/orders");
+        } else if (active) setError(errorMessage(requestError));
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
-
-    loadPage();
+    load();
+    return () => {
+      active = false;
+    };
   }, [router]);
 
-  const handleStatusChange = (orderId, value) => {
-    setStatusInputs((prev) => ({ ...prev, [orderId]: value }));
-  };
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return orders.filter((order) =>
+      (filter === "all" || order.orderStatus === filter) &&
+      (!needle || `${order.orderNumber} ${order.user?.fullName || ""} ${order.contactPhone}`.toLowerCase().includes(needle)),
+    );
+  }, [orders, filter, query]);
 
-  const handleUpdateStatus = async (orderId) => {
-    setSavingId(orderId);
+  const update = async (order) => {
+    const next = statusInputs[order.id];
+    if (next === order.orderStatus) return;
+    setSavingId(order.id);
     setError("");
     setMessage("");
-
     try {
-      await api.patch(
-        `/orders/${orderId}/status`,
-        { orderStatus: statusInputs[orderId] },
-        getAuthConfig()
-      );
-
-      setMessage("Order status updated successfully.");
+      await api.patch(`/orders/${order.id}/status`, { orderStatus: next }, getAuthConfig());
+      setMessage(`${order.orderNumber} is now ${next}.`);
       await fetchOrders();
-    } catch (err) {
-      const responseMessage = err.response?.data?.message;
-      setError(Array.isArray(responseMessage) ? responseMessage[0] : responseMessage || "Failed to update order.");
+    } catch (requestError) {
+      setError(errorMessage(requestError));
     } finally {
       setSavingId(null);
     }
   };
 
+  const updateTracking = async (order) => {
+    const tracking = trackingInputs[order.id] || {};
+    if (!tracking.carrier?.trim() || !tracking.trackingNumber?.trim()) { setError("Carrier and tracking number are required."); return; }
+    setSavingId(order.id); setError("");
+    try { await api.patch(`/orders/${order.id}/tracking`, tracking, getAuthConfig()); setMessage(`Tracking saved for ${order.orderNumber}.`); await fetchOrders(); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+    finally { setSavingId(null); }
+  };
+
   return (
-    <main className="w-full max-w-7xl mx-auto px-4 py-6">
-      <button type="button" onClick={() => router.push("/admin")} className="rounded-md border bg-white px-3 py-2 text-sm mb-6">
-        Back To Admin
-      </button>
-
-      <h1 className="text-2xl font-semibold mb-6">Manage Orders</h1>
-
-      {loading && <p>Loading orders...</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-      {message && <p className="mb-4 text-sm">{message}</p>}
-      {!loading && !error && orders.length === 0 && <p>No orders found.</p>}
-
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <div key={order.id} className="border rounded-lg bg-white p-4">
-            <p className="text-sm mb-1"><span className="font-medium">Order:</span> {order.orderNumber}</p>
-            <p className="text-sm mb-1"><span className="font-medium">Customer:</span> {order.user?.fullName || "N/A"}</p>
-            <p className="text-sm mb-1"><span className="font-medium">Payment:</span> {order.paymentMethod} / {order.paymentStatus}</p>
-            <p className="text-sm mb-1"><span className="font-medium">Total:</span> Tk {order.totalAmount}</p>
-            <p className="text-sm mb-3"><span className="font-medium">Phone:</span> {order.contactPhone}</p>
-
-            <div className="flex flex-wrap gap-3">
-              <select value={statusInputs[order.id] || order.orderStatus} onChange={(event) => handleStatusChange(order.id, event.target.value)} className="rounded-md border px-3 py-2 text-sm">
-                <option value="pending">pending</option>
-                <option value="confirmed">confirmed</option>
-                <option value="cancelled">cancelled</option>
-                <option value="delivered">delivered</option>
-              </select>
-
-              <button type="button" onClick={() => handleUpdateStatus(order.id)} disabled={savingId === order.id} className="rounded-md border bg-white px-3 py-2 text-sm">
-                {savingId === order.id ? "Updating..." : "Update Status"}
-              </button>
-
-              <button type="button" onClick={() => router.push(`/orders/${order.id}`)} className="rounded-md border bg-white px-3 py-2 text-sm">
-                View Details
-              </button>
+    <main className="studio-page">
+      <div className="studio-heading"><div><span className="eyebrow">FULFILMENT DESK</span><h1>Orders.</h1></div><span>{orders.length} total</span></div>
+      <div className="admin-filters">
+        <label><span>Search</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Order, customer or phone" /></label>
+        <label><span>Status</span><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All orders</option>{Object.keys(transitions).map((status) => <option value={status} key={status}>{status.replaceAll("_", " ")}</option>)}</select></label>
+      </div>
+      {loading && <p role="status">Loading orders…</p>}
+      {error && <p className="status-note error-note" role="alert">{error}</p>}
+      {message && <p className="status-note" role="status">{message}</p>}
+      {!loading && !visible.length && <div className="empty-state"><p>No orders match this view.</p></div>}
+      <div className="admin-card-list">
+        {visible.map((order) => (
+          <article className="admin-record" key={order.id}>
+            <div className="admin-record-head"><div><span className="eyebrow">{new Date(order.createdAt).toLocaleDateString("en-GB")}</span><h2>{order.orderNumber}</h2></div><span className={`status-pill ${order.orderStatus}`}>{order.orderStatus}</span></div>
+            <div className="admin-record-grid"><p><small>Customer</small>{order.user?.fullName || "Unavailable"}</p><p><small>Payment</small>{order.paymentMethod.replaceAll("_", " ")} · <span className={`status-pill ${order.paymentStatus}`}>{order.paymentStatus}</span></p><p><small>Total</small>{money(order.totalAmount)}</p><p><small>Contact</small>{order.contactPhone}</p></div>
+            <div className="admin-record-actions">
+              <select aria-label={`Status for ${order.orderNumber}`} value={statusInputs[order.id] || order.orderStatus} onChange={(event) => setStatusInputs((current) => ({ ...current, [order.id]: event.target.value }))}>{transitions[order.orderStatus].map((status) => <option key={status} value={status}>{status}</option>)}</select>
+              <button type="button" disabled={savingId === order.id || statusInputs[order.id] === order.orderStatus} onClick={() => update(order)}>{savingId === order.id ? "Updating…" : "Save status"}</button>
+              <Link className="text-link" href={`/orders/${order.id}`}>View details ↗</Link>
+              {order.orderStatus === "confirmed" && order.paymentMethod !== "cash_on_delivery" && order.paymentStatus !== "verified" && <span className="action-hint">Verify the Send Money transfer before delivery.</span>}
             </div>
-          </div>
+            {["confirmed", "processing", "packed", "shipped"].includes(order.orderStatus) && <div className="tracking-editor"><input aria-label="Courier" placeholder="Courier" value={trackingInputs[order.id]?.carrier || ""} onChange={(event) => setTrackingInputs((current) => ({ ...current, [order.id]: { ...(current[order.id] || {}), carrier: event.target.value } }))}/><input aria-label="Tracking number" placeholder="Tracking number" value={trackingInputs[order.id]?.trackingNumber || ""} onChange={(event) => setTrackingInputs((current) => ({ ...current, [order.id]: { ...(current[order.id] || {}), trackingNumber: event.target.value } }))}/><input aria-label="Tracking URL" type="url" placeholder="Tracking URL (optional)" value={trackingInputs[order.id]?.trackingUrl || ""} onChange={(event) => setTrackingInputs((current) => ({ ...current, [order.id]: { ...(current[order.id] || {}), trackingUrl: event.target.value } }))}/><button onClick={() => updateTracking(order)} disabled={savingId === order.id}>Save tracking</button></div>}
+          </article>
         ))}
       </div>
     </main>

@@ -25,8 +25,9 @@ export default function SizeDetailsPage() {
       try {
         const profileResponse = await api.get("/users/profile", getAuthConfig());
 
-        if (profileResponse.data.data.role !== "admin") {
-          setError("Admin access only.");
+        const profile = profileResponse.data.data;
+        if (profile.role === "staff" && !profile.permissions?.includes("catalog")) {
+          setError("Catalog permission is required.");
           setLoading(false);
           return;
         }

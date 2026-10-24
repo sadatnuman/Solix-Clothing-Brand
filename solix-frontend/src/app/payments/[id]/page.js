@@ -2,79 +2,52 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import api from "../../lib/api";
+import api, { errorMessage } from "../../lib/api";
 import { getAuthConfig, getToken, removeToken } from "../../lib/auth";
 
 export default function PaymentDetailsPage() {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const params = useParams();
   const router = useRouter();
 
   useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
+    if (!getToken()) {
       router.push("/login");
       return;
     }
-
-    const fetchPayment = async () => {
-      try {
-        const response = await api.get(`/payments/${params.id}`, getAuthConfig());
-        setPayment(response.data.data);
-      } catch (err) {
-        const status = err.response?.status;
-        const message = err.response?.data?.message;
-
-        if (status === 401) {
+    api.get(`/payments/${params.id}`, getAuthConfig())
+      .then((response) => setPayment(response.data.data))
+      .catch((requestError) => {
+        if (requestError.response?.status === 401) {
           removeToken();
           router.push("/login");
           return;
         }
-
-        setError(Array.isArray(message) ? message[0] : message || "Failed to load payment.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (params.id) {
-      fetchPayment();
-    }
+        setError(errorMessage(requestError));
+      })
+      .finally(() => setLoading(false));
   }, [params.id, router]);
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <div className="flex gap-3 mb-6">
-        <button type="button" onClick={() => router.push("/orders")} className="border rounded px-3 py-2 text-sm">
-          My Orders
-        </button>
-
-        {payment?.order?.id && (
-          <button type="button" onClick={() => router.push(`/orders/${payment.order.id}`)} className="border rounded px-3 py-2 text-sm">
-            Back To Order
-          </button>
-        )}
+    <main className="section account-subpage" style={{ maxWidth: 760 }}>
+      <div className="account-page-actions">
+        <button type="button" onClick={() => router.push("/orders")} className="text-link">← My orders</button>
+        {payment?.order?.id && <button type="button" onClick={() => router.push(`/orders/${payment.order.id}`)} className="text-link">View order</button>}
       </div>
-
-      <h1 className="text-2xl font-semibold mb-6">Payment Details</h1>
-
-      {loading && <p>Loading payment...</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-
-      {!loading && !error && payment && (
-        <div className="border rounded p-4 space-y-3">
-          <p className="text-sm"><span className="font-medium">Payment ID:</span> {payment.id}</p>
-          <p className="text-sm"><span className="font-medium">Order ID:</span> {payment.order?.id}</p>
-          <p className="text-sm"><span className="font-medium">Method:</span> {payment.method}</p>
-          <p className="text-sm"><span className="font-medium">Status:</span> {payment.status}</p>
-          <p className="text-sm"><span className="font-medium">Transaction Reference:</span> {payment.transactionRef || "N/A"}</p>
-          <p className="text-sm"><span className="font-medium">Paid At:</span> {payment.paidAt || "Not paid yet"}</p>
-        </div>
-      )}
+      <span className="eyebrow">MANUAL PAYMENT</span>
+      <h1 className="page-title">Payment details.</h1>
+      {loading && <p role="status">Loading payment…</p>}
+      {error && <p className="status-note error-note" role="alert">{error}</p>}
+      {!loading && !error && payment && <div className="summary-box payment-detail-card">
+        <div className="admin-record-head"><h2>{payment.order?.orderNumber || "Payment record"}</h2><span className={`status-pill ${payment.status}`}>{payment.status}</span></div>
+        <div className="summary-row"><span>Method</span><strong>{String(payment.method).replaceAll("_", " ")}</strong></div>
+        <div className="summary-row"><span>Transaction ID</span><strong>{payment.transactionRef || "Not required"}</strong></div>
+        <div className="summary-row"><span>Submitted</span><strong>{payment.submittedAt ? new Date(payment.submittedAt).toLocaleString() : "Pending"}</strong></div>
+        <div className="summary-row"><span>Verified</span><strong>{payment.paidAt ? new Date(payment.paidAt).toLocaleString() : "Waiting for review"}</strong></div>
+        {payment.rejectionReason && <p className="status-note error-note">{payment.rejectionReason}</p>}
+      </div>}
     </main>
   );
 }

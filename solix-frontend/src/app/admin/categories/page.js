@@ -36,8 +36,9 @@ export default function AdminCategoriesPage() {
       try {
         const profileResponse = await api.get("/users/profile", getAuthConfig());
 
-        if (profileResponse.data.data.role !== "admin") {
-          setError("Admin access only.");
+        const profile = profileResponse.data.data;
+        if (profile.role === "staff" && !profile.permissions?.includes("catalog")) {
+          setError("Catalog permission is required.");
           setLoading(false);
           return;
         }
@@ -131,6 +132,7 @@ export default function AdminCategoriesPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this unused category?")) return;
     setError("");
     setMessage("");
 
@@ -185,6 +187,7 @@ export default function AdminCategoriesPage() {
             <div>
               <label className="block text-sm mb-1">Name</label>
               <input
+                required
                 type="text"
                 name="name"
                 value={formData.name}

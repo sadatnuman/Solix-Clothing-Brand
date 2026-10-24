@@ -1,92 +1,81 @@
+import { UserRecord } from '../database/types';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { User } from './entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { UserRole } from '../common/enums/user-role.enum';
-
+import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectRepository(User)
-    private readonly usersRepo: Repository<User>,
-  ) {}
-
-  async create(userData: Partial<User>): Promise<User> {
-    const user = this.usersRepo.create(userData);
-    return this.usersRepo.save(user);
+  constructor(@InjectModel('User') private readonly users: Model<UserRecord>) {}
+  async create(
+    data: Partial<User>,
+  ): Promise<import('mongoose').HydratedDocument<UserRecord>> {
+    return this.users.create(data);
   }
-
-  async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepo.findOne({ where: { email } });
+  async findByEmail(
+    email: string,
+  ): Promise<import('mongoose').HydratedDocument<UserRecord> | null> {
+    return this.users
+      .findOne({ email: email.trim().toLowerCase() })
+      .select('+passwordHash');
   }
-
-  async findById(id: number): Promise<User> {
-    const user = await this.usersRepo.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
+  async findById(
+    id: string,
+  ): Promise<import('mongoose').HydratedDocument<UserRecord>> {
+    const user = await this.users.findById(id);
+    if (!user) throw new NotFoundException('User not found');
     return user;
   }
-
-  async getMyProfile(userId: number) {
-    const user = await this.findById(userId);
-
+  async getMyProfile(id: string) {
+    return { data: await this.findById(id) };
+  }
+  async updateMyProfile(id: string, dto: UpdateProfileDto) {
     return {
-      message: 'Profile fetched successfully',
-      data: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      data: await this.users.findByIdAndUpdate(
+        id,
+        { $set: dto },
+        { new: true, runValidators: true },
+      ),
     };
   }
-
-  async updateMyProfile(userId: number, dto: UpdateProfileDto) {
-    const user = await this.findById(userId);
-
-    Object.assign(user, dto);
-    const updatedUser = await this.usersRepo.save(user);
-
-    return {
-      message: 'Profile updated successfully',
-      data: {
-        id: updatedUser.id,
-        fullName: updatedUser.fullName,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        address: updatedUser.address,
-        role: updatedUser.role,
-        isActive: updatedUser.isActive,
-        updatedAt: updatedUser.updatedAt,
-      },
-    };
-  }
-
   async findAllCustomers() {
-    const customers = await this.usersRepo.find({
-      where: { role: UserRole.CUSTOMER },
-      order: { createdAt: 'DESC' },
-    });
-
+    const data = await this.users
+      .find({ role: 'customer' })
+      .sort({ createdAt: -1 });
+    return { data, count: data.length };
+  }
+  async setStatus(id: string, isActive: boolean) {
+    const data = await this.users.findByIdAndUpdate(
+      id,
+      { $set: { isActive } },
+      { new: true },
+    );
+    if (!data) throw new NotFoundException('User not found');
+    return { data };
+  }
+  async resetPassword(
+    id: string,
+    temporaryPassword: string,
+    mustChangePassword = true,
+  ) {
+    const data = await this.users.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          passwordHash: await bcrypt.hash(temporaryPassword, 12),
+          mustChangePassword,
+        },
+      },
+      { new: true },
+    );
+    if (!data) throw new NotFoundException('User not found');
     return {
-      message: 'Customers fetched successfully',
-      count: customers.length,
-      data: customers.map((user) => ({
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role,
-        isActive: user.isActive,
-      })),
+      message: 'Temporary password set',
+      data: {
+        id: String(data._id),
+        mustChangePassword: Boolean(data.mustChangePassword),
+      },
     };
   }
 }

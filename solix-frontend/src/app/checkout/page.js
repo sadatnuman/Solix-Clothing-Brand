@@ -1,189 +1,33 @@
 "use client";
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import api, { money, errorMessage } from '../lib/api';
+import { getToken } from '../lib/auth';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import api from "../lib/api";
-import { getAuthConfig, getToken, removeToken } from "../lib/auth";
+const formatAddress = (address) => [address.line1, address.line2, address.area, address.city, address.postalCode].filter(Boolean).join(', ');
 
-export default function CheckoutPage() {
-  const [cart, setCart] = useState(null);
-  const [formData, setFormData] = useState({
-    deliveryAddress: "",
-    contactPhone: "",
-    paymentMethod: "cash_on_delivery",
-  });
-  const [loading, setLoading] = useState(true);
-  const [placingOrder, setPlacingOrder] = useState(false);
-  const [error, setError] = useState("");
-
-  const router = useRouter();
-
+export default function Checkout() {
+  const router = useRouter(); const key = useRef(null);
+  const [cart, setCart] = useState(null); const [config, setConfig] = useState(null); const [addresses, setAddresses] = useState([]); const [coupon, setCoupon] = useState(null);
+  const [form, setForm] = useState({ addressId: '', deliveryAddress: '', contactPhone: '', deliveryNotes: '', couponCode: '', paymentMethod: 'cash_on_delivery', acceptTerms: false });
+  const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const fetchCheckoutData = async () => {
-      try {
-        const [profileResponse, cartResponse] = await Promise.all([
-          api.get("/users/profile", getAuthConfig()),
-          api.get("/cart", getAuthConfig()),
-        ]);
-
-        const profile = profileResponse.data.data;
-        const cartData = cartResponse.data.data;
-
-        setCart(cartData);
-        setFormData({
-          deliveryAddress: profile.address || "",
-          contactPhone: profile.phone || "",
-          paymentMethod: "cash_on_delivery",
-        });
-      } catch (err) {
-        const status = err.response?.status;
-        const message = err.response?.data?.message;
-
-        if (status === 401) {
-          removeToken();
-          router.push("/login");
-          return;
-        }
-
-        if (Array.isArray(message)) {
-          setError(message[0]);
-        } else {
-          setError(message || "Failed to load checkout data.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCheckoutData();
+    if (!getToken()) { router.replace('/login?next=/checkout'); return; }
+    let active = true; key.current = sessionStorage.getItem('solix_checkout_key') || crypto.randomUUID(); sessionStorage.setItem('solix_checkout_key', key.current);
+    Promise.all([api.get('/cart'), api.get('/users/profile'), api.get('/store/config'), api.get('/addresses')]).then(([cartResponse, profileResponse, storeResponse, addressResponse]) => {
+      if (!active) return; const list = addressResponse.data.data || []; const preferred = list.find((item) => item.isDefault) || list[0];
+      setCart(cartResponse.data.data); setConfig(storeResponse.data.data); setAddresses(list);
+      setForm((current) => ({ ...current, addressId: preferred?.id || '', deliveryAddress: preferred ? formatAddress(preferred) : profileResponse.data.data.address || '', contactPhone: preferred?.phone || profileResponse.data.data.phone || '' }));
+    }).catch((requestError) => { if (requestError.response?.status === 401) router.replace('/login?next=/checkout'); else if (active) setError(errorMessage(requestError)); });
+    return () => { active = false; };
   }, [router]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handlePlaceOrder = async (event) => {
-    event.preventDefault();
-    setPlacingOrder(true);
-    setError("");
-
-    try {
-      const response = await api.post("/orders", formData, getAuthConfig());
-      router.push(`/orders/${response.data.data.id}`);
-    } catch (err) {
-      const message = err.response?.data?.message;
-
-      if (Array.isArray(message)) {
-        setError(message[0]);
-      } else {
-        setError(message || "Failed to place order.");
-      }
-    } finally {
-      setPlacingOrder(false);
-    }
-  };
-
-  return (
-    <main className="max-w-3xl mx-auto p-6">
-      <div className="flex gap-3 mb-6">
-        <button
-          type="button"
-          onClick={() => router.push("/cart")}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          Back To Cart
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.push("/orders")}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          My Orders
-        </button>
-      </div>
-
-      <h1 className="text-2xl font-semibold mb-6">Checkout</h1>
-
-      {loading && <p>Loading checkout data...</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-
-      {!loading && cart && (
-        <>
-          <div className="border rounded p-4 mb-6">
-            <p className="text-sm mb-2">
-              <span className="font-medium">Total Items:</span> {cart.totalItems}
-            </p>
-
-            <p className="text-sm">
-              <span className="font-medium">Total Amount:</span> Tk {cart.totalAmount}
-            </p>
-          </div>
-
-          {cart.items.length === 0 ? (
-            <p>Your cart is empty.</p>
-          ) : (
-            <form onSubmit={handlePlaceOrder} className="border rounded p-4 space-y-4">
-              <div>
-                <label className="block text-sm mb-1">Delivery Address</label>
-                <input
-                  type="text"
-                  name="deliveryAddress"
-                  value={formData.deliveryAddress}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Contact Phone</label>
-                <input
-                  type="text"
-                  name="contactPhone"
-                  value={formData.contactPhone}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Payment Method</label>
-                <select
-                  name="paymentMethod"
-                  value={formData.paymentMethod}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2 text-sm"
-                >
-                  <option value="cash_on_delivery">Cash On Delivery</option>
-                  <option value="bkash">Bkash</option>
-                  <option value="nagad">Nagad</option>
-                  <option value="card">Card</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={placingOrder}
-                className="border rounded px-3 py-2 text-sm"
-              >
-                {placingOrder ? "Placing Order..." : "Place Order"}
-              </button>
-            </form>
-          )}
-        </>
-      )}
-    </main>
-  );
+  function chooseAddress(id) { const address = addresses.find((item) => item.id === id); setForm({ ...form, addressId: id, deliveryAddress: address ? formatAddress(address) : form.deliveryAddress, contactPhone: address?.phone || form.contactPhone }); }
+  async function applyCoupon() { setBusy(true); setError(''); try { const response = await api.post('/coupons/validate', { code: form.couponCode, subtotal: cart.totalAmount }); setCoupon(response.data.data); } catch (requestError) { setCoupon(null); setError(errorMessage(requestError)); } finally { setBusy(false); } }
+  async function submit(event) { event.preventDefault(); setBusy(true); setError(''); try { const response = await api.post('/orders', { ...form, couponCode: coupon?.code || undefined, checkoutKey: key.current }); sessionStorage.removeItem('solix_checkout_key'); router.push(`/orders/${response.data.data.id}`); } catch (requestError) { setError(errorMessage(requestError)); } finally { setBusy(false); } }
+  const chosen = config?.paymentMethods.find((method) => method.id === form.paymentMethod); const total = Math.max(0, Number(cart?.totalAmount || 0) - Number(coupon?.discount || 0));
+  return <main className="section checkout-page"><div className="breadcrumb"><Link href="/cart">Your bag</Link> / Checkout</div><h1 className="page-title">Make it yours.</h1>{error && <p className="status-note error-note" role="alert">{error}</p>}{!cart && !error && <p role="status">Preparing your checkout…</p>}{cart && !cart.items.length && <div className="empty-state"><p>Your bag is empty.</p><Link href="/shop" className="text-link">Explore the collection ↗</Link></div>}{cart?.items.length > 0 && <form className="commerce-grid" onSubmit={submit}><div className="form-stack"><div className="checkout-step"><div className="section-heading compact"><div><span className="eyebrow">01 / DELIVERY</span><h2>Where should it go?</h2></div><Link href="/profile/addresses" className="text-link">Manage addresses</Link></div>{addresses.length > 0 && <div className="address-picker">{addresses.map((address) => <label className={form.addressId === address.id ? 'address-option selected' : 'address-option'} key={address.id}><input type="radio" name="address" value={address.id} checked={form.addressId === address.id} onChange={() => chooseAddress(address.id)} /><strong>{address.label}</strong><span>{address.recipientName} · {address.phone}</span><small>{formatAddress(address)}</small></label>)}</div>}<label>Delivery address<textarea required minLength={8} rows={3} autoComplete="street-address" value={form.deliveryAddress} onChange={(event) => setForm({ ...form, deliveryAddress: event.target.value, addressId: '' })} /></label><label>Contact phone<input required type="tel" autoComplete="tel" value={form.contactPhone} onChange={(event) => setForm({ ...form, contactPhone: event.target.value })} /></label><label>Delivery notes <span className="optional">Optional</span><textarea rows={2} maxLength={500} value={form.deliveryNotes} onChange={(event) => setForm({ ...form, deliveryNotes: event.target.value })} placeholder="Landmark, preferred time or delivery note" /></label></div>
+      <div className="checkout-step"><span className="eyebrow">02 / PAYMENT</span><h2>How would you like to pay?</h2>{config?.paymentMethods.map((method) => <label key={method.id} className="payment-option"><input type="radio" name="method" disabled={!method.enabled} checked={form.paymentMethod === method.id} value={method.id} onChange={(event) => setForm({ ...form, paymentMethod: event.target.value })} />{method.label}{method.id !== 'cash_on_delivery' ? ' · Send Money' : ''}{!method.enabled && <span>Unavailable</span>}</label>)}{chosen?.id !== 'cash_on_delivery' && chosen?.enabled && <div className="status-note">After placing the order, send the exact total to <strong>{chosen.number}</strong> and submit the transaction ID for manual verification.</div>}</div>
+      <label className="terms-check"><input type="checkbox" required checked={form.acceptTerms} onChange={(event) => setForm({ ...form, acceptTerms: event.target.checked })} /> I agree to the <Link href="/pages/terms">store terms</Link>, delivery and return policy.</label></div>
+      <aside className="summary-box"><h2>Order summary</h2>{cart.items.map((item) => <div className="summary-row" key={item.id}><span>{item.productVariant?.product?.name} × {item.quantity}<br/><small>{item.productVariant?.colourName !== 'Default' ? `${item.productVariant?.colourName} · ` : ''}Size {item.productVariant?.size?.name}</small></span><span>{money(item.subtotal)}</span></div>)}<div className="coupon-box"><label htmlFor="coupon">Offer code</label><div><input id="coupon" value={form.couponCode} onChange={(event) => { setForm({ ...form, couponCode: event.target.value.toUpperCase() }); setCoupon(null); }} placeholder="WELCOME10" /><button type="button" disabled={busy || !form.couponCode.trim()} onClick={applyCoupon}>Apply</button></div>{coupon && <small>{coupon.code} applied · {money(coupon.discount)} off</small>}</div><div className="summary-row"><span>Subtotal</span><span>{money(cart.totalAmount)}</span></div>{coupon && <div className="summary-row discount"><span>Discount</span><span>−{money(coupon.discount)}</span></div>}<div className="summary-row"><span>Delivery</span><span>Free</span></div><div className="summary-row total"><span>Total</span><span>{money(total)}</span></div><button className="button dark" type="submit" disabled={busy || !form.acceptTerms || cart.items.some((item) => item.unavailable)}>{busy ? 'Placing your order…' : 'Place order'} <span>↗</span></button><p className="summary-note">Prices and stock are checked again securely before the order is created.</p></aside></form>}</main>;
 }

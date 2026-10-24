@@ -1,98 +1,66 @@
+import { OrderRecord } from '../database/types';
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { Order } from '../orders/entities/order.entity';
-import { OrderItem } from '../orders/entities/order-item.entity';
-import { OrderStatus } from '../common/enums/order-status.enum';
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 @Injectable()
 export class AdminDashboardService {
   constructor(
-    @InjectRepository(Order)
-    private readonly ordersRepo: Repository<Order>,
-    @InjectRepository(OrderItem)
-    private readonly orderItemsRepo: Repository<OrderItem>,
+    @InjectModel('Order') private readonly orders: Model<OrderRecord>,
   ) {}
-
   async getRevenueSummary() {
-    const deliveredOrders = await this.ordersRepo.find({
-      where: { orderStatus: OrderStatus.DELIVERED },
-      order: { createdAt: 'DESC' },
-    });
-
-    const totalRevenue = deliveredOrders.reduce((sum, order) => {
-      return sum + Number(order.totalAmount);
-    }, 0);
-
-    const totalDeliveredOrders = deliveredOrders.length;
-
-    const pendingOrders = await this.ordersRepo.count({
-      where: { orderStatus: OrderStatus.PENDING },
-    });
-
-    const confirmedOrders = await this.ordersRepo.count({
-      where: { orderStatus: OrderStatus.CONFIRMED },
-    });
-
-    const cancelledOrders = await this.ordersRepo.count({
-      where: { orderStatus: OrderStatus.CANCELLED },
-    });
-
+    const groups = await this.orders.aggregate<{
+      _id: string;
+      count: number;
+      total: number;
+    }>([
+      {
+        $group: {
+          _id: '$orderStatus',
+          count: { $sum: 1 },
+          total: { $sum: '$totalAmount' },
+        },
+      },
+    ]);
+    const count = (s: string) => groups.find((g) => g._id === s)?.count || 0;
     return {
-      message: 'Revenue summary fetched successfully',
       data: {
-        totalRevenue,
-        totalDeliveredOrders,
-        pendingOrders,
-        confirmedOrders,
-        cancelledOrders,
+        totalRevenue: groups.find((g) => g._id === 'delivered')?.total || 0,
+        totalDeliveredOrders: count('delivered'),
+        pendingOrders: count('pending'),
+        confirmedOrders: count('confirmed'),
+        cancelledOrders: count('cancelled'),
       },
     };
   }
-
   async getSoldProductsSummary() {
-    const deliveredOrderItems = await this.orderItemsRepo.find({
-      relations: ['order'],
-      where: { order: { orderStatus: OrderStatus.DELIVERED } },
-      order: {
-        id: 'DESC',
-      },
-    });
-
-    const productMap = new Map<
-      string,
+    const data = await this.orders.aggregate<{
+      productName: string;
+      totalQuantitySold: number;
+      totalRevenue: number;
+    }>([
+      { $match: { orderStatus: 'delivered' } },
+      { $unwind: '$items' },
       {
-        productName: string;
-        totalQuantitySold: number;
-        totalRevenue: number;
-      }
-    >();
-
-    for (const item of deliveredOrderItems) {
-      const key = `${item.productName}__${item.sizeName}`;
-
-      if (!productMap.has(key)) {
-        productMap.set(key, {
-          productName: `${item.productName} (${item.sizeName})`,
-          totalQuantitySold: 0,
-          totalRevenue: 0,
-        });
-      }
-
-      const current = productMap.get(key)!;
-      current.totalQuantitySold += Number(item.quantity);
-      current.totalRevenue += Number(item.subtotal);
-    }
-
-    const soldProducts = Array.from(productMap.values()).sort(
-      (a, b) => b.totalQuantitySold - a.totalQuantitySold,
-    );
-
-    return {
-      message: 'Sold products summary fetched successfully',
-      count: soldProducts.length,
-      data: soldProducts,
-    };
+        $group: {
+          _id: {
+            product: '$items.product',
+            name: '$items.productName',
+            size: '$items.sizeName',
+          },
+          totalQuantitySold: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: '$items.subtotal' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          productName: { $concat: ['$_id.name', ' (', '$_id.size', ')'] },
+          totalQuantitySold: 1,
+          totalRevenue: 1,
+        },
+      },
+      { $sort: { totalQuantitySold: -1 } },
+    ]);
+    return { data, count: data.length };
   }
 }

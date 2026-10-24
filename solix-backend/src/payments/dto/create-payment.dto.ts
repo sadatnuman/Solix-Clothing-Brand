@@ -1,11 +1,10 @@
-import { IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsMongoId } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaymentMethod } from '../../common/enums/payment-method.enum';
 
 export class CreatePaymentDto {
-  @Type(() => Number)
-  @IsInt()
-  orderId!: number;
+  @IsMongoId()
+  orderId!: string;
 
   @IsEnum(PaymentMethod)
   method!: PaymentMethod;
@@ -13,4 +12,8 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsString()
   transactionRef?: string;
+
+  @IsOptional()
+  @IsString()
+  senderLastFour?: string;
 }

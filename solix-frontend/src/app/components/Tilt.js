@@ -1,0 +1,3 @@
+"use client";
+import { useRef } from 'react';
+export default function Tilt({ children, className = '' }) { const ref=useRef(null); function move(e) { if(e.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; const r=e.currentTarget.getBoundingClientRect(); ref.current.style.setProperty('--rx',`${-(e.clientY-r.top-r.height/2)/r.height*7}deg`); ref.current.style.setProperty('--ry',`${(e.clientX-r.left-r.width/2)/r.width*9}deg`); } function reset(){ref.current.style.setProperty('--rx','0deg');ref.current.style.setProperty('--ry','0deg');} return <div ref={ref} className={`tilt ${className}`} onPointerMove={move} onPointerLeave={reset}>{children}</div> }

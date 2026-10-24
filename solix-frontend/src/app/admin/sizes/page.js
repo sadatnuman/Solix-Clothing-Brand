@@ -33,8 +33,9 @@ export default function AdminSizesPage() {
       try {
         const profileResponse = await api.get("/users/profile", getAuthConfig());
 
-        if (profileResponse.data.data.role !== "admin") {
-          setError("Admin access only.");
+        const profile = profileResponse.data.data;
+        if (profile.role === "staff" && !profile.permissions?.includes("catalog")) {
+          setError("Catalog permission is required.");
           setLoading(false);
           return;
         }
@@ -97,6 +98,7 @@ export default function AdminSizesPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm("Delete this unused size?")) return;
     setError("");
     setMessage("");
 
@@ -134,7 +136,7 @@ export default function AdminSizesPage() {
 
             <div>
               <label className="block text-sm mb-1">Size Name</label>
-              <input type="text" value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
+              <input required type="text" value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-md border px-3 py-2 text-sm" />
             </div>
 
             <div className="flex flex-wrap gap-3">

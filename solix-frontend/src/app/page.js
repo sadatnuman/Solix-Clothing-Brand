@@ -143,12 +143,19 @@ export default function Home() {
       </section>
 
       <section className="journey-section section">
-        <div className="journey-title"><span className="eyebrow">FROM SCREEN TO WARDROBE</span><h2>A considered journey,<br />from first look to first wear.</h2></div>
+        <div className="journey-editorial">
+          <div className="journey-title"><span className="eyebrow">YOUR SOLIX JOURNEY</span><h2>Find it.<br />Make it yours.</h2><p>Four clear steps take you from discovering a piece to following it all the way home.</p></div>
+          <DepthScene className="journey-art">
+            <div className="journey-photo journey-photo-main"><Image src="/images/catalog/oxford-shirt.png" alt="Solix Oxford shirt" fill sizes="(max-width: 760px) 58vw, 26vw" /></div>
+            <div className="journey-photo journey-photo-detail"><Image src="/images/catalog/royal-watch.png" alt="Solix Crown Dial Watch" fill sizes="(max-width: 760px) 34vw, 15vw" /></div>
+            <span className="journey-stamp">04<br /><b>STEPS</b><br />ONE SOLIX</span>
+          </DepthScene>
+        </div>
         <div className="journey-track">
-          <article><span>01</span><div className="journey-icon">⌕</div><h3>Discover your edit</h3><p>Search by category, colour, size, price and availability to narrow the collection quickly.</p><Link href="/shop">Browse all pieces ↗</Link></article>
-          <article><span>02</span><div className="journey-icon">↔</div><h3>Choose your fit</h3><p>Use measurements, stock by size and product-specific fit notes before adding a piece.</p><Link href="/pages/size-guide">Open the size guide ↗</Link></article>
-          <article><span>03</span><div className="journey-icon">✓</div><h3>Checkout your way</h3><p>Order with Cash on Delivery or submit a bKash or Nagad Send Money reference for review.</p><Link href="/pages/delivery">Delivery information ↗</Link></article>
-          <article><span>04</span><div className="journey-icon">◎</div><h3>Stay in the loop</h3><p>Follow order progress, payment updates and support replies from your Solix account.</p><Link href="/profile">Visit your account ↗</Link></article>
+          <article><span>01</span><h3>Discover</h3><p>Search and filter the full collection.</p><Link href="/shop">Browse pieces ↗</Link></article>
+          <article><span>02</span><h3>Choose</h3><p>Check measurements, sizes and live stock.</p><Link href="/pages/size-guide">Size guide ↗</Link></article>
+          <article><span>03</span><h3>Order</h3><p>Use COD, bKash or Nagad Send Money.</p><Link href="/pages/delivery">Delivery details ↗</Link></article>
+          <article><span>04</span><h3>Follow</h3><p>Track orders and support in your account.</p><Link href="/profile">Your account ↗</Link></article>
         </div>
       </section>
 
@@ -163,7 +170,7 @@ export default function Home() {
 
       <section className="visit-banner section">
         <div><span className="eyebrow">SOLIX IN RAJBARI</span><h2>See the collection<br />in person.</h2><p>Visit us at Baharpur Bazar, beside Ramdia Road. Discover the fabric, fit and finish up close.</p><div className="visit-actions"><a className="button dark" href="https://www.google.com/maps/place/Solix/@23.6848205,89.5658677,18z" target="_blank" rel="noreferrer">Open directions <span>↗</span></a><Link className="text-link" href="/contact">Store details ↗</Link></div></div>
-        <DepthScene className="visit-emblem"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix crowned S emblem" width={260} height={280} /><span>23.6848° N<br />89.5659° E</span></DepthScene>
+        <DepthScene className="visit-emblem"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix crowned S emblem" width={260} height={280} /></DepthScene>
       </section>
 
       <section className="service-strip"><div><span>01</span><h3>Considered choice</h3><p>Clear sizing, honest stock and detailed materials.</p></div><div><span>02</span><h3>A simpler checkout</h3><p>Cash on delivery or verified Send Money.</p></div><div><span>03</span><h3>Local support</h3><p>Website inbox plus our Rajbari store contact.</p></div></section>

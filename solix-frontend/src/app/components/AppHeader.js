@@ -89,7 +89,7 @@ export default function AppHeader() {
             <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
             {unreadCount > 0 && <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
           </Link>}
-          <Link className="bag-link" href="/cart">Bag <span aria-hidden="true">↗</span></Link>
+          <Link className="bag-link" href="/cart"><span className="bag-label">Bag</span><span aria-hidden="true">↗</span></Link>
           <button className="menu-toggle" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-controls="mobile-menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "×" : "☰"}</button>
         </div>
       </header>

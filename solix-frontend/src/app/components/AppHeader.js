@@ -68,6 +68,7 @@ export default function AppHeader() {
               alt=""
               fill
               priority
+              unoptimized
               sizes="84px"
               className="brand-logo-art"
             />

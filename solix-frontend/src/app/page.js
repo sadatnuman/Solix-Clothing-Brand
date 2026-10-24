@@ -39,7 +39,7 @@ export default function Home() {
           <div className="hero-bottom"><span className="hero-index">01 / 03</span><span className="hero-line" /><span>ROYAL ELEGANCE. EVERYDAY EASE.</span></div>
         </div>
         <div className="hero-visual">
-          <Image src="/images/campaign.jpg" alt="Friends in effortless everyday outfits on a city street" fill priority sizes="(max-width: 760px) 100vw, 55vw" className="hero-image" />
+          <Image src="/images/campaign.jpg" alt="Friends in effortless everyday outfits on a city street" fill priority unoptimized sizes="(max-width: 760px) 100vw, 55vw" className="hero-image" />
           <div className="image-grain" />
           <span className="hero-photo-label">OFF DUTY. ON YOUR TERMS.</span>
           <div className="orbit-stamp" aria-hidden="true"><span>THE ROYAL</span><b>S</b><span>SOLIX · RAJBARI</span></div>
@@ -129,7 +129,7 @@ export default function Home() {
       <RecentlyViewed />
 
       <section id="story" className="story section">
-        <div className="story-art royal-story-mark"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix royal crowned S" width={300} height={323} /><span>BAHARPUR · RAJBARI<br />BANGLADESH</span></div>
+        <div className="story-art royal-story-mark"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix royal crowned S" width={300} height={323} unoptimized /><span>BAHARPUR · RAJBARI<br />BANGLADESH</span></div>
         <div><span className="eyebrow">THE SOLIX POINT OF VIEW</span><h2>Royal elegance,<br />made wearable.</h2><p>Solix brings premium Panjabi, modern essentials and considered accessories together for life in Bangladesh.</p><p>From Baharpur, Rajbari, we design for celebrations, everyday confidence and everything in between.</p><div className="story-links"><Link href="/pages/about" className="text-link">Meet Solix ↗</Link><Link href="/contact" className="text-link">Visit the Baharpur store ↗</Link></div></div>
       </section>
 
@@ -170,7 +170,7 @@ export default function Home() {
 
       <section className="visit-banner section">
         <div><span className="eyebrow">SOLIX IN RAJBARI</span><h2>See the collection<br />in person.</h2><p>Visit us at Baharpur Bazar, beside Ramdia Road. Discover the fabric, fit and finish up close.</p><div className="visit-actions"><a className="button dark" href="https://www.google.com/maps/place/Solix/@23.6848205,89.5658677,18z" target="_blank" rel="noreferrer">Open directions <span>↗</span></a><Link className="text-link" href="/contact">Store details ↗</Link></div></div>
-        <DepthScene className="visit-emblem"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix crowned S emblem" width={260} height={280} /></DepthScene>
+        <DepthScene className="visit-emblem"><Image src="/images/solix-royal-logo-transparent.png" alt="Solix crowned S emblem" width={260} height={280} unoptimized /></DepthScene>
       </section>
 
       <section className="service-strip"><div><span>01</span><h3>Considered choice</h3><p>Clear sizing, honest stock and detailed materials.</p></div><div><span>02</span><h3>A simpler checkout</h3><p>Cash on delivery or verified Send Money.</p></div><div><span>03</span><h3>Local support</h3><p>Website inbox plus our Rajbari store contact.</p></div></section>

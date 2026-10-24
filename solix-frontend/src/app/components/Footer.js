@@ -29,7 +29,7 @@ export default function Footer() {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
   return <footer className="site-footer">
     <div className="footer-top">
-      <div><Link href="/" className="footer-brand" aria-label="Solix clothing brand home"><span className="footer-logo-frame"><Image src="/images/solix-royal-logo-transparent.png" fill sizes="112px" alt="Solix crowned S royal logo" className="brand-logo-art"/></span></Link><p>{store.brandTagline}</p></div>
+      <div><Link href="/" className="footer-brand" aria-label="Solix clothing brand home"><span className="footer-logo-frame"><Image src="/images/solix-royal-logo-transparent.png" fill unoptimized sizes="112px" alt="Solix crowned S royal logo" className="brand-logo-art"/></span></Link><p>{store.brandTagline}</p></div>
       <div><h3>Explore</h3><Link href="/shop">The collection</Link><Link href="/categories">Categories</Link><Link href="/pages/about">About Solix</Link><Link href="/contact">Contact</Link></div>
       <div><h3>Help</h3><Link href="/pages/faq">FAQ</Link><Link href="/pages/size-guide">Size guide</Link><Link href="/pages/delivery">Delivery</Link><Link href="/pages/returns">Returns</Link></div>
       <div><h3>Your Solix</h3><Link href="/profile">My account</Link><Link href="/orders">Track orders</Link><Link href="/wishlist">Wishlist</Link><Link href="/support">Support inbox</Link></div>

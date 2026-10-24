@@ -11,7 +11,7 @@ const pages = {
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const [title, description] = pages[slug] || ['Solix Information', 'Information from Solix Bangladesh.'];
-  return { title, description, alternates: { canonical: `/pages/${slug}` }, openGraph: { title: `${title} | Solix Bangladesh`, description, url: `/pages/${slug}`, images: [{ url: '/images/solix-royal-logo.jpg', width: 960, height: 960, alt: 'Solix Bangladesh logo' }] } };
+  return { title, description, alternates: { canonical: `/pages/${slug}` }, openGraph: { title: `${title} | Solix Bangladesh`, description, url: `/pages/${slug}`, images: [{ url: '/images/solix-social-preview.png', width: 1200, height: 630, alt: 'Solix Bangladesh royal fashion collection' }] }, twitter: { card: 'summary_large_image', images: ['/images/solix-social-preview.png'] } };
 }
 
 export default function InformationLayout({ children }) { return children; }

@@ -12,6 +12,7 @@ const inter = Inter({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001';
 const logoUrl = '/images/solix-royal-logo.jpg';
+const socialPreviewUrl = '/images/solix-social-preview.png';
 const description = 'Shop Solix Bangladesh for premium Panjabi, clothing, watches and modern everyday essentials. Complimentary delivery with Cash on Delivery and bKash or Nagad Send Money.';
 
 export const metadata = {
@@ -47,13 +48,13 @@ export const metadata = {
     siteName: 'Solix Bangladesh',
     title: 'Solix Bangladesh | Premium Clothing, Panjabi & Watches',
     description,
-    images: [{ url: logoUrl, width: 960, height: 960, alt: 'Solix Bangladesh crowned S logo' }],
+    images: [{ url: socialPreviewUrl, width: 1200, height: 630, alt: 'Solix Bangladesh royal fashion collection' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Solix Bangladesh | Premium Clothing, Panjabi & Watches',
     description,
-    images: [logoUrl],
+    images: [socialPreviewUrl],
   },
   robots: {
     index: true,
@@ -76,7 +77,7 @@ const storeSchema = {
   alternateName: 'Solix Bangladesh',
   url: siteUrl,
   logo: `${siteUrl}${logoUrl}`,
-  image: `${siteUrl}${logoUrl}`,
+  image: `${siteUrl}${socialPreviewUrl}`,
   description,
   slogan: STORE_INFO.tagline,
   telephone: STORE_INFO.internationalPhone,
